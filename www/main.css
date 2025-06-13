@@ -1,0 +1,298 @@
+/*-*- css-indent-offset: 2 -*-*/
+/* Copyright 2025 by zrajm. Licenses: CC BY-SA (text), GPLv2 (code). */
+
+/* allthingssmitty.com/2017/01/09/css-reset-for-minimalists */
+html { box-sizing: border-box }
+*, :before, :after { box-sizing: inherit; padding: 0; margin: 0; text-indent: 0 }
+
+/******************************************************************************/
+html {
+  /* allthingssmitty.com/2016/12/05/flexible-type-using-root */
+  font-size: calc(1vw + 1vh + .5vmin);
+  /* www.typotheque.com/articles/opentype_features_in_css */
+  font-variant-ligatures: common-ligatures;
+  max-width: 100%;
+  font: 20px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+  padding: 0 .5rem;
+  --indent: 1.25rem;
+  --leading: 1.75;
+  --linefg: #888a; /* for lines: <hr>, <table> etc. */
+  --line-width: 1px;
+  --pagefg: #000;
+  --pagebg: #fff;
+  --codebg: #eee;
+  /* CSS-only darkmode. */
+  transition: background-color .1s ease-in, color .1s ease-in;
+  @media (prefers-color-scheme: light) { /* lightmode, but darkmode checked */
+    &:has(#darkmode:checked) {
+      --pagebg: #111;
+      --pagefg: #fff;
+      --codebg: #333;
+    }
+    :where(a) { color: #718eff }
+  }
+  @media (prefers-color-scheme: dark) { /* darkmode (and darkmode unchecked) */
+    &:not(:has(#darkmode:checked)) {
+      --pagebg: #111;
+      --pagefg: #fff;
+      --codebg: #333;
+    }
+    :where(a) { color: #718eff }
+  }
+  background: var(--pagebg);
+  color: var(--pagefg);
+}
+body {
+  margin: 0 auto;
+  max-width: 36rem;
+}
+a { color: #2962ff }
+footer { text-align: center }
+a[href^="#fn"],
+sup { top: -1.15ex } /* push up one x-height of surrounding font size */
+sub { top:  1ex    } /* push down one x-height footnote font size */
+a[href^="#fn"]:after, a[href^="#fn"]:before,
+sub:after, sub:before, sup:after, sup:before {
+  /* Using hairspace lets any <a> underline (in <a><sup>…</sup></a>)
+     stick out a bit on either side, making sure its visible even when
+     link text has a descender (as with descending old-style numbers). */
+  content: '\feff\200a\feff'; /* hair space, no break before/after */
+}
+sub, sup, a[href^="#fn"] {
+  font-size: .8em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+/********************/
+/* No space between paragraphs, indent 1st line. */
+p:not(:empty) {
+  &:has(+ p:not(:empty)) { margin-bottom: 0 }
+  &     + p:not(:empty)  { margin-top: 0; text-indent: var(--indent) }
+}
+ul { list-style-type: "⚫︎ " }
+/** Table-of-Contents **/
+ul.toc {
+  & :where(a) { color: inherit; text-decoration: none }
+  & ul, & { list-style: none }
+  & ul { margin-top: 0; margin-bottom: 0 }
+  margin: 0;
+  columns: calc(var(--indent) * 10) auto;
+  column-gap: calc(var(--indent) * 2);
+  column-rule: var(--line-width) solid var(--linefg);
+}
+/* Elements with blank line above/below. */
+blockquote, footer, ol, p, pre, table, ul {
+  margin-top   : calc(var(--leading) * .5rem);
+  margin-bottom: calc(var(--leading) * .5rem);
+}
+hr {
+  margin-top   : calc(var(--leading) * 1.5rem);
+  margin-bottom: calc(var(--leading) * 1.5rem);
+}
+/* Indented elements. */
+blockquote, ol, ul { margin-left: var(--indent) }
+blockquote {
+  border-left: calc(var(--indent) - .75rem) solid #8885;
+  padding: 0 .75rem;
+}
+pre, tt {
+  background: #aaa3;
+  border: 1px solid #8885;
+  border-radius: .125rem;
+  padding: 0 .0625em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  font-size: 90%;
+}
+pre { padding: .25rem; }
+h1, h2, h3 { margin-top: 1em }
+h1, h2, h3, h4, h5, h6 {
+  & a { color: inherit; text-decoration: none }
+  & a[href^="#"]:hover:before {
+    color: var(--linefg);
+    content: "#";
+    display: inline-block;
+    width: .875em;
+    margin-left: -.875em;
+    text-decoration: none;
+  }
+}
+small { font-size: .9em }
+a {
+  border-radius: .125rem;
+  padding: 0  .25rem  .125rem;
+  margin:  0 -.25rem -.125rem;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+a.img { display: inline-block }
+a.img, [id] { position: relative }
+a.img img { display: block }
+a.img:hover:before, :target:before {
+  content: ' ';
+  position: absolute;
+  left: -.25rem; right: -.25rem;
+  border-radius: .125rem;
+}
+a.img:hover:before {
+  top: -.35rem; bottom: -.25rem;
+}
+a.img:hover:before, a:not(.img):hover {
+  box-shadow: 0 0 .75rem #88f7 inset, 0 0 1.5rem #88f7 inset;
+  background: #88f1;
+}
+:target:before {
+  top: 0rem; bottom: -.125rem;
+  box-shadow: 0 0 .75rem #fb4b inset, 0 0 1.5rem #fb4b inset;
+  background: #fb44;
+  z-index: -1;
+}
+td, th {
+  &[href] {
+    position: relative;
+    &:hover:before {
+      position: absolute; inset: 0;
+      content: '';
+      box-shadow: 0 0 .75rem #88f7 inset, 0 0 1.5rem #88f7 inset;
+      background: #88f1;
+    }
+  }
+}
+a:hover { text-decoration: underline }
+/** Tables **/
+/* All borders are on <td> (for scroll shadows to work), and  */
+/* non-overlapping (for the half transparent colors to work). */
+table {
+  border-spacing: 0;
+  td, th {
+    border: 0 solid var(--linefg);
+    border-top-width: var(--line-width);
+    border-right-width: var(--line-width);
+    &:first-of-type {
+      border-left-width: var(--line-width);
+    }
+  }
+  &:has(     > tfoot ) tfoot,
+  &:not(:has(> tfoot)) tbody {
+    &:last-of-type > tr:last-of-type {
+      td, th {
+        border-bottom-width: var(--line-width);
+      }
+    }
+  }
+}
+/* Always show scrollbar in webkit browsers. */
+@mixin customWebkitScrollbarHorizontal {
+  &::-webkit-scrollbar { height: 10px; }
+  &::-webkit-scrollbar-thumb { border: 0; background: #aaa; border-radius: 5px; }
+  &::-webkit-scrollbar-track { border: 0; background: transparent;  }
+  &::-webkit-scrollbar-thumb, &::-webkit-scrollbar-track:vertical { display: none; }
+}
+/* Scroll shadows. */
+/* lea.verou.me/2012/04/background-attachment-local */
+pre, table {
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-gutter: stable;
+  scrollbar-color: #aaa transparent;
+  @include customWebkitScrollbarHorizontal;
+  -webkit-overflow-scrolling: touch;
+  /* First two gradients are fixed shadow that covers second two shadows. */
+  background:
+    no-repeat linear-gradient(90deg, var(--codebg), transparent  ) local  top  left/70px 100%,
+    no-repeat linear-gradient(90deg, transparent,   var(--codebg)) local  top right/70px 100%,
+    no-repeat linear-gradient(90deg, #8886,         transparent  ) scroll top  left/20px 100%,
+    no-repeat linear-gradient(90deg, transparent,   #8886        ) scroll top right/20px 100%,
+    var(--codebg);
+}
+table {
+  display: block;
+  width: fit-content;
+  background:
+    no-repeat linear-gradient(90deg, var(--pagebg), transparent  ) local  top  left/70px 100%,
+    no-repeat linear-gradient(90deg, transparent,   var(--pagebg)) local  top right/70px 100%,
+    no-repeat linear-gradient(90deg, #8886,         transparent  ) scroll top  left/20px 100%,
+    no-repeat linear-gradient(90deg, transparent,   #8886        ) scroll top right/20px 100%,
+    var(--pagebg);
+}
+button {
+  background: #66f;
+  border: none; border-radius: 2em;
+  padding: .25em .75em;
+  line-height: 1;
+  font: inherit;
+  cursor: pointer;
+}
+hr {
+  position: relative;
+  overflow: visible;
+  border: 0;
+  height: var(--line-width);
+  --break: calc(var(--indent) * 3.5); /* width of '* * *' string */
+  background: linear-gradient(
+    90deg,
+    var(--linefg),
+    var(--linefg) calc(50% - (var(--break) / 2)),
+    transparent   calc(50% - (var(--break) / 2)),
+    transparent   calc(50% + (var(--break) / 2)),
+    var(--linefg) calc(50% + (var(--break) / 2)),
+    var(--linefg));
+  &:before {
+    display: block;
+    text-align: center;
+    content: "* * *";
+    font-size: 120%;
+    transform: translateY(calc(-.775em + (var(--line-width) / 2)));
+  }
+}
+/** Checkbox **/
+input[type="checkbox"] {
+  opacity: .5;
+  transition: opacity ease-in-out .1s;
+  &:hover { opacity: 1 }
+  --unit: 25px;
+  --right-distance: calc(100% - var(--unit));
+  --on-distance: var(--right-distance);
+  --off-distance: 0;
+  @media(prefers-color-scheme: dark) {
+    --on-distance: 0;
+    --off-distance: var(--right-distance);
+  }
+  &:before, &:after { /* groove + knob */
+    content: '';
+    display: block;
+    position: absolute; inset: 0;
+    border-radius: var(--unit);
+    transition: left .05s ease-in;
+  }
+  &:before { /* groove */
+    background: #999;
+    box-shadow: inset 0 0 0 1px #0002;
+  }
+  &:after { /* knob */
+    width: var(--unit);
+    background: #fff; box-shadow: 0 1px 2px 0 #0008;
+    left: var(--off-distance)
+  }
+  &:checked:after { left: var(--on-distance) }
+  appearance: none;
+  display: inline-block; height: var(--unit); width: calc(var(--unit) * 1.75);
+  position: relative; vertical-align: middle; bottom: .1em;
+  cursor: pointer;
+  font-size: inherit;
+  &#darkmode {
+    position: fixed; top: 0; right: 0; margin: 1rem;
+    --sun: url('data:image/svg+xml,<svg width="25" height="25" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="3.5"/><path d="M10 2.5V5m0 10v2.5m5.3-12.8-1.8 1.8m-7 7-1.8 1.8M17.5 10H15M5 10H2.5m2.2-5.3 1.8 1.8m7 7 1.8 1.8" stroke="%23000" stroke-width="1.5px"/></svg>');
+    --moon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 20 20"><path d="M10 3a7 7 0 0 0-7 7 7 7 0 0 0 7 7 7 7 0 0 0 5.77-3.05A6 6 0 0 1 15 14a6 6 0 0 1-6-6 6 6 0 0 1 2.48-4.84A7 7 0 0 0 10 3z"/></svg>');
+    /* knob */
+    &:after { content: var(--sun) }
+    &:checked:after { content: var(--moon) }
+    @media (prefers-color-scheme: dark) {
+      &:after { content: var(--moon) }
+      &:checked:after { content: var(--sun) }
+    }
+  }
+}
+/*eof*/

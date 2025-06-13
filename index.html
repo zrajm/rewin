@@ -1,0 +1,417 @@
+<!DOCTYPE html><meta charset=utf-8><!--*- markdown -*-->
+<link rel=stylesheet href=www/nojs.css><textarea disabled>
+
+Created: 2025-06-02T17:49:42+02:00
+Updated: 2025-06-13T14:06:11+02:00
+License: CC BY-NC-SA (text), GPLv2 (code).
+Favicon: /www/favicon.svg
+Author: zrajm
+
+# Rewin: A Firefox Extension
+
+> This is a Firefox extension that restores tabs and windows, including their
+> history. Making *everything* restorable. Forever.
+>
+> Rewin is to *win again,* or *win back.* Or maybe its rewin*d* without the
+> *d?* Also, it *wins windows.*
+
+<toc heading=Contents class=toc>
+
+-------------------------------------------------------------------------------
+
+
+# Milestones
+
+<ul>
+  <li>**Version 0.1: *Basic Functionality***---Like browser's "History ›
+  Recently closed tabs" but regardless of age. Requires:
+  <ul style="margin-top:.5rem;margin-bottom:.5rem;margin-left:2rem">
+    <li>[A data structure](#internal-data-structure)
+    <li>[Continuous saving of history] (while browsing)
+    <li>History menu
+    <li>Restore tab function
+  </ul>
+  Because of browser limitations the history of restored windows and tabs won't
+  visible under the usual "Back" (←) and "Forward" (→) buttons, but instead via
+  Rewin's own menu. (A future workaround for this problem might be possible,
+  but won't be included in version 1.)</ul>
+
+
+* **Version 0.2: *Restore Window***
+* **Version 1.0: *[Browser Restart]***
+
+
+## Later
+
+* Scan existing history of a tab (on extension install)
+* Bifurcating history (going back, then forward different route)
+* Save history externally
+* Syncing history
+* Work on mobile (for sync between mobile & computer)
+
+
+## Far Future
+
+* Populate [browser history menu]
+* Thumbs up/down
+* History exploration
+
+
+# Internal Data Structure
+
+
+## `storage.local`
+
+FIXME: Account for a tab having *future* history!
+
+<p><p>Tabs aren't removed from their windows when closed, but only get their
+tab metadata set to 'closed'---that way we can restore them in the same
+position if need be. (Having several thousand tabs shouldn't be a problem, and
+in reality shouldn't really happen). However, if a tab is dragged into another
+window, it's removed from the original window.
+
+```
+"open": [
+  [META, TABID, TABID, ...],  // a window
+  ...
+]
+"closed": [
+  [META, TABID, TABID, ...],  // a window
+  ...
+]
+```
+
+And for each tab we have:
+
+```
+TABID: [
+  DATETIME,        // 0 or time when closed
+  [URL, DATETIME],
+  [URL, DATETIME],
+]
+```
+
+The `TABID`s used above are our own, they do not correspond to the `tab.id`
+used by the browser. (If they did we'd have a heck of a time to rename them on
+when the browser restarts and all the tab IDs are reset.)
+
+
+## `storage.session`
+
+Contains the currently active fake history entries for a tab. As they are
+visited (and their pages loaded for real), they are removed from here, if all
+are removed then the extension stops running a content script for that tab.
+This info is recreated from scratch when the tab is restored, and cleared when
+the tab is closed.
+
+```
+TABID: {
+  FAKEID: URL,
+  …
+}
+```
+
+Each unvisited (fake) history entry has an URL parameter "?rewin=FAKEID" which identifies the URL to go to. (There's a random string here to guarantee that each  URL is unique as `pushState()` doesn't allow repeated URLs.)
+
+
+-------------------------------------------------------------------------------
+
+
+
+```
+// Closed tab should stay associated with its window (but noted as closed)
+//
+// A closed window should be retained (tabs open at closing time should be
+// marked as 'open', those closed before the closing of the window should
+// be marked as 'closed'.)
+
+windows = [
+  winID: [tabId1, tabId2, tabId3, ...],
+]
+
+// Needs to allow for trees.
+history = [
+  tabId1: [
+    {
+      date: "2025-06-03T23:07:51+02:00",
+      url : "http://zrajm.org/rewin/"
+    }
+]
+```
+
+
+[Continuous Saving of History]: #continuous-saving-of-history
+# Continuous Saving of History
+
+Rewin monitors user page navigation, and whenever a page is added or updated in
+history (through navigation, or Javascript `replaceState()` or `pushState()`)
+that page is recorded in Rewin's history as well.
+
+Here we'll use the [webNavigation API] and its `onCommitted`,
+`onHistoryStateUpdated` and `onReferenceFragmentUpdated` events to listen for
+user navigation.
+
+```
+browser.webNavigation.onCommitted.addListener(evt => {
+  ...
+})
+```
+
+Also, we'll need to be able to detect when the user is navigating using history
+by testing whether `webNavigation.TransitionQualifier` is `'forward_back'`.
+
+
+
+
+## User Navigation Types
+
+`webNavigation.TransitionQualifier` `"from_address_bar"` and
+`webNavigation.TransitionType` `"typed"`.
+
+-------------------------------------------------------------------------------
+
+Difference between `webNavigation.TransitionQualifier === "from_address_bar"`
+and `webNavigation.TransitionType === "typed"`.
+
+* `TransitionType === 'typed'` indicates how navigation started. User *typed* a
+  URL directly into the address bar.
+* `TransitionQualifier === 'from_address_bar'` indicates extra detail.
+  Navigation originated *from* the address bar, regardless of how (typed,
+  search, or history dropdown).
+
+**Key Takeaway:** If it's `typed`, it's also `from_address_bar`. But if it's
+`from_address_bar`, it's not necessarily `typed` (could be a search, or
+selecting a history item from the address bar dropdown).
+
+-------------------------------------------------------------------------------
+
+When `TransitionQualifier === 'from_address_bar'` the following
+`TransitionType` values are possible in the `webNavigation.onCommitted` event:
+
+The key is that `from_address_bar` is a **qualifier** that specifies *where the
+navigation originated*, while `transitionType` tells you *what kind of
+navigation* it was.
+
+* `typed`: This is the most common and direct combination. The user explicitly
+  typed a URL into the address bar and pressed Enter, or selected a direct URL
+  suggestion from the address bar's dropdown.
+* `generated`: This occurs when the user starts typing in the address bar, and
+  then clicks on a suggested entry that is **not a direct URL**. This often
+  happens with search queries (e.g., typing "weather" and then the browser
+  generates a search URL like `google.com/search?q=weather`). Even though a
+  search query was entered, the navigation originated *from* the address bar.
+* `auto_bookmark`: If the user selects a bookmark from the address bar's
+  autocomplete suggestions (or perhaps a history item that was originally a
+  bookmark), the `transitionType` could be `auto_bookmark`, while the
+  `transitionQualifiers` would include `from_address_bar` because the action
+  started there.
+* `reload`: If the user reloads the page by pressing Enter in the address bar
+  (after the URL is already there), the `transitionType` would be `reload`, and
+  `transitionQualifiers` would include `from_address_bar`. This also applies to
+  session restore or reopening closed tabs, where the navigation is treated as
+  a reload originating from the address bar's context.
+
+---
+
+In summary:
+
+* `typed` is the most direct consequence of using the address bar to navigate to a specific URL.
+* `generated` covers using the address bar for searches.
+* `auto_bookmark` covers using the address bar to select a bookmark.
+* `reload` covers re-submitting the current URL from the address bar.
+
+
+
+# Problems
+
+[Browser Restart]: #browser-restart
+## Browser Restart
+
+On browser restart, all existing windows and tabs need to be reassociated to
+their history state.
+
+Here's a [Stackoverflow question](https://stackoverflow.com/a/14518800/351162)
+discussing how to do this in Chrome (but it is applicable to Firefox as well):
+
+> Tabs can be (almost) uniquely and consistently identified as
+> required by the question by maintaining a register of tabs which stores the
+> following combination of variables in local persistent storage:
+>
+> - `Tab.id`
+> - `Tab.index`
+> - A 'fingerprint' of the document open in the tab - `[location.href, document.referrer, history.length]`
+>
+> These variables can be tracked and stored in the registry using listeners on
+> a combination of the following events: `onUpdated` / `onCreated` / `onMoved`
+> / `onDetached` / `onAttached` / `onRemoved` / `onReplaced`
+>
+> <p><p>There are still ways to fool this method, but in practice they are
+> probably pretty rare - mostly edge cases.
+>
+> Since it looks like I'm not the only one who has needed to solve this
+> problem, I built my implementation as a library with the intention that it
+> could be used in any Chrome extension. It's MIT licensed and [available on
+> GitHub](https://github.com/drzax/chrome-tab-registry) for forking and pull
+> requests (in fact, any feedback would be welcome - there are definitely
+> possible improvements).
+
+
+## Detecting History Navigation
+
+In order to maintain it's internal state of history, Rewin needs to be able to
+distinguish when the user navigates by following a link, from when history is
+used to navigate.
+
+The [webNavigation API] can be used to figure out what kind of user interaction
+was used to navigate to a new URL.
+
+With `webNavigation.TransitionQualifier` `'forward_back'`
+
+
+[Browser History Menu]: #browser-history-menu
+## Browser History Menu
+
+Functions used to populate a tab's browser history *only sometimes* affect the
+history menus of the "Back" (←) and "Forward" (→) buttons in the browser.
+However, this is not the programmatic view---from inside the extension,
+updating the history works just fine---it is just the state is not shown in the
+browser menus.
+
+What's even more frustrating is that the above is *not always the case.* I've
+tried to figure out what causes the weird behavior, thinking that it might be
+tied to Firefox's [features gated by user activation], or the limitation for
+[when popstate is sent] that suppresses popstate events if the user haven't yet
+interacted with the tab in question, however, this does not seem to be the
+case.---Or, if it is, then that is only part of the story.
+
+
+### When it Works
+
+The browser `history` state seems to always be consistent from inside
+Javascript. Loading a new page, or using `pushState()` always increases
+`history.length` by one, regardless of whether an entry is added to the Back
+button menu or not, and the navigation methods (`back()`, `forward()` and
+`go()`) always take you to the place you expect, regardless of whether that
+history entry is visible in the browser menu or not.
+
+I *think* the above is true regardless of what method is used to navigate,
+though I have mostly experimented using `pushState()`---but it seems to me that
+navigation based on `location` or `browser.tabs` have demonstrated the same
+behavior.
+
+In the instances I have been able to update the Back button menus, this has
+always been triggered by user interaction. For example, displaying a button on
+the web page itself, and have that call a function that does repeated
+`pushState()` *sometimes* work to update browser Back button menu, but
+sometimes not. When updating the history state from an extension, or directly
+on page load, however, I have never been able to get the browser menu to
+change.—It's also interesting to note that this does not seem related to the
+speed with which the updates are done, using `setTimeout()` to space out the
+`pushState()` invocations does not seem to affect the result one way or the
+other.
+
+Actually, that's not *entirely* true. When using `setTimeout()` and adding
+history events with a long delay, the *current page* is always included in the
+menu, and if the user opens the menu that current page is retained in the menu,
+even after the text page is loaded. Lets say I have a Javascript that uses
+`pushState()` to update the history menu with a 10 second interval. First I
+load page A, this page will then be visible in the Back button menu until page
+B is loaded, whereupon page B is visible in the menu until page C is loaded
+(and so on). *However,* if the user happen to open the menu while (say) page B
+was loaded (and then closed the menu again, without clicking any of the entries
+therein) then the menu entry for page B will be retained, even after page C, D
+and E have been loaded. Thus, the current page, plus any page that was loaded
+when the user opened the menu will be retained in the menu.
+
+
+### Restoring History
+
+Currently, the tab history is populated with "fake" history events, which is
+then loaded for real (by a content script) when a user navigate to that history
+entry. The reason for this is that `history.pushState()` is used to populate
+the history, and it can only be used for URLs with the same [origin] as the
+current page (that is, URLs that have the same *protocol* and *domain*).
+
+This means that history entries that have been restored by Rewin does not
+contain "true" content, but a state that refers to the actual URL, and only
+when the user navigates to one of these history entries, is the true content
+loaded (by means of `location.replace()`).
+
+<p><p>Different ways of loading adding an entry to history:
+
+* [History API]---Use `pushState()` create fake history entries, then use
+  content script to load the real page when user navigates to the entry.
+* [Tabs API] (for browser extensions)---Use `create()` and `update()`
+  methods are able to load arbitrary addresses.
+* [Window location property]---Use its `assign()` or `replace()` methods.
+* Link injection (insert a link into the DOM, then click it).
+* Form injection (same as above, but use a form instead).
+* [Proxy API]---I don't know if this is suitable. Also, it's incompatible with
+  the corresponding Chrome API, so maybe avoid on the grounds that it'll make
+  it harder to make a Chrome extension in the future?
+
+
+
+# Afterword
+
+There are so many ways one can go with this, and I'm trying not to let my
+fantastical wishes run too wild.
+
+Sometime in the future I'd like to be able to "see my own trail" across the
+internet, so that if I ever revisit a web page there'll be some visual
+indicator in the browser showing that I've been there before.---From there I'd
+like to be able to explore the context of my previous visit, see where I came
+from last I was there, see what other tabs where open at that time, and be able
+to explore my past history.
+
+Maybe even be able to leave some notes to my future self? Or at least leave
+myself a thumbs up/thumbs down---indicating to my future self whether or not I
+found the page useful. (I imagine a thumbs up/thumbs down emoji would replace
+the current bookmark star, in the Firefox URL bar---and in practice, I'm
+thinking this would just be two bookmark folders, likewise named thumbs
+up/thumbs down.)
+
+
+# Related Research
+
+* [Reddit r/firefox: Session manager addon that restores history of tabs as well]
+* [Bugzilla Bug #1378651: Allow accessing back-forward history for each tab]
+* [Bugzilla Bug #1381922: Allow modifying/restoring back-forward history for each tab]
+* [Bugzilla Bug #1413525: Implement a general mechanism for saving sessions]
+
+* [Reddit r/firefox: Are there really no session manager add-ons that can save tab history?]
+* [Tab-Session-Manager Github Issue: Preserve Tab History #27]
+* [Chromium Bug #40384007: History of a specific TAB]
+
+
+## Alternative User Interfaces
+
+* [Lossless Web Navigation with Trails]---Argues that when link is opened in a
+  new tab (or window) it should to retain all its history (as if 'Duplicate
+  Tab' was clicked first). Each tab thus would have its own "trail" through the
+  history, some of which would be shared with other tabs.
+* [A Spacial Model for Lossless Web Navigation]---Suggests a user interface for
+  navigating back and forward in history, but also "vertically" between trails.
+
+-------------------------------------------------------------------------------
+
+[A Spacial Model for Lossless Web Navigation]: https://www.freecodecamp.org/news/lossless-web-navigation-spatial-model-37f83438201d
+[Bugzilla Bug #1378651: Allow accessing back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1378651
+[Bugzilla Bug #1381922: Allow modifying/restoring back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1381922
+[Bugzilla Bug #1413525: Implement a general mechanism for saving sessions]: https://bugzilla.mozilla.org/show_bug.cgi?id=1413525
+[Chromium Bug #40384007: History of a specific TAB]: https://issues.chromium.org/issues/40384007
+[Features gated by user activation]: https://developer.mozilla.org/en-US/docs/Web/Security/User_activation "MDN: Features gated by user activation"
+[History API]: https://developer.mozilla.org/en-US/docs/Web/API/History_API/Working_with_the_History_API "MDN: Working with the History API"
+[Lossless Web Navigation with Trails]: https://www.freecodecamp.org/news/lossless-web-navigation-with-trails-9cd48c0abb56
+[origin]: https://developer.mozilla.org/en-US/docs/Glossary/Origin "MDN: Glossary Origin"
+[Proxy API]: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/proxy "Proxy API"
+[Reddit r/firefox: Are there really no session manager add-ons that can save tab history?]: https://reddit.com/r/firefox/comments/grs6a8/are_there_really_no_session_manager_addons_that/
+[Reddit r/firefox: Session manager addon that restores history of tabs as well]: https://www.reddit.com/r/firefox/comments/u3lyef/session_manager_addon_that_restores_history_of/
+[Tab-Session-Manager Github Issue: Preserve Tab History #27]: https://github.com/sienori/Tab-Session-Manager/issues/27
+[Tabs API]: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs "MDN: Javascripts APIs: Tabs"
+[When popstate is sent]: https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event#when_popstate_is_sent "MDN: Window: Popstate Event: When Popstate Is Sent"
+[webNavigation API]: https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webNavigation "MDN: webNavigation"
+[Window location property]: https://developer.mozilla.org/en-US/docs/Web/API/Window/location "MDN: Window: location property"
+
+</textarea><script type=module src=www/main.js></script>
+<!--[eof]-->

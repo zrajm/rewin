@@ -1,0 +1,17 @@
+-*- org -*-
+
+* TODO Finish writing data structure section
+* TODO Implement history saving
+* TODO Implement history popup
+* TODO Extension icon should reflect history state
+  Icon should be shaded/dimmed when it does not contain restored state (that
+  isn't available in the browsers Back menu).
+* TODO Implement 'Restore tab'
+* TODO Implement 'Restore window'
+* TODO Add Rewin to zrajm.org main menu
+* TODO Use `browser.tabs.update()` to load tabs?
+  This would mean that we don't need any content scripts (I think).
+
+  Also, need to update 'Restoring History' in the docs, after implementing
+  this.
+* [eof]
