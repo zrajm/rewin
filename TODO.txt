@@ -1,17 +1,96 @@
 -*- org -*-
 
-* TODO Finish writing data structure section
-* TODO Implement history saving
-* TODO Implement history popup
-* TODO Extension icon should reflect history state
-  Icon should be shaded/dimmed when it does not contain restored state (that
-  isn't available in the browsers Back menu).
-* TODO Implement 'Restore tab'
-* TODO Implement 'Restore window'
-* TODO Add Rewin to zrajm.org main menu
-* TODO Use `browser.tabs.update()` to load tabs?
-  This would mean that we don't need any content scripts (I think).
+* TODO Add README
+* TODO Add license files
+* Firefox plugin
+** [0/6] Milestone Version 0.1---Basic Functionality
+*** TODO Write data structure section
+*** TODO Continuous saving of history
+*** TODO Implement history saving
+*** TODO Implement history popup
+*** TODO 'Restore tab' function
+*** TODO Update Rewin internal state
+    Rewin should look at presently existing tabs and windows, and if there are
+    discrepancies between the observable state, and Rewin's internal state the
+    badge text should be set to '!', and the popup menu should display a button
+    for scanning the current browser state, and update Rewin's internal state
+    based on that.
 
-  Also, need to update 'Restoring History' in the docs, after implementing
-  this.
+    This function is basically sure to be triggered on install.
+** [0/1] Milestone Version 0.2---Restore Window
+*** TODO 'Restore window' function
+*** TODO Add Rewin to zrajm.org main menu
+** [0/1] Milestone Version 1.0---Browser Restart
+*** TODO Reassociate existing windows with internal history data on restart
+    https://stackoverflow.com/a/14518800/351162
+** TODO Use `browser.tabs.update()` to load tabs?
+   This would mean that we don't need any content scripts (I think).
+
+   Also, need to update 'Restoring History' in the docs, after implementing
+   this.
+** TODO Manifest permissions for more `storage.local`
+   "permissions": [
+     "storage",
+     "unlimitedStorage"
+   ]
+   + Default: ~2 GB per extension.
+   + With "unlimitedStorage" there's no strict cap, but limited by user disk
+     space and global Firefox quotas (typically up to 10% of disk or 10 GB).
+** TODO Make sure icon looks good light mode (non-dark mode)
+** TODO Verify that creating new tab updates state correctly
+** TODO Verify that creating new window updates state correctly
+** TODO Handle history for private window separately
+   browser.tabs.getCurrent().then(tab => {
+     if (tab.incognito) {
+       console.log(`Tab ID: ${tab.id} is in a Private Window.`);
+       // Perform actions specific to private tabs
+     } else {
+       console.log(`Tab ID: ${tab.id} is in a Regular Window.`);
+       // Perform actions specific to regular tabs
+     }
+   })
+** TODO Use icon badge text to show when there is restored history
+   A badge text should indicate with a number how many restored history items
+   are available through the extensions own history menu (that isn't accessible
+   through the usual ← Back button)
+** TODO Permission 'Run in Private Windows'
+   Can this permission be requested on install? It shows up on the 'Manage
+   Extension' settings (visible if on right-click of the extension icon).
+** TODO Permission 'Run on sites with restrictions'
+   Can this permission be requested on install? It shows up on the 'Manage
+   Extension' settings (visible if on right-click of the extension icon).
+** TODO file:// access
+   If you specifically need file:// access, check if `tab.url` starts with
+   `file:` and consider reminding the user to enable file access in
+   `about:addons` if it's crucial.
+
+  if (tabUrl.startsWith("file:") && !user_has_enabled_file_access_option) {
+    console.warn("File URL detected. User might need to enable 'Run on file:// URLs' in about:addons.");
+    // You might provide a link or guide the user here.
+  }
+
+  browser.action.onClicked.addListener(() => {
+    browser.permissions.request({
+      origins: ["file:///*"]
+    }).then((granted) => {
+      if (granted) {
+        console.log("Permission granted!")
+      } else {
+        console.log("Permission denied.")
+      }
+    })
+  })
+** TODO `onFocusChanged` seem to generate multiple events -- optimize?
+** TODO `onActivated` seem to generate multiple events -- optimize?
+** TODO Warn when close to filling up quota
+   Set badge text to '!' and display a warning in the popup menu.
+
+   https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria
+   Web developers can check how much space is available for their origin and
+   how much is being used by the origin with the `navigator.storage.estimate()`
+   method of the Storage API.
+** TODO DISTANT FUTURE
+*** TODO Make history searchable
+    What would this entail? Should only history be searchable? (If so, it might
+    need to be added to the Rewin internal state.)
 * [eof]

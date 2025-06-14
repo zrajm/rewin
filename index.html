@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-06-13T14:06:11+02:00
+Updated: 2025-06-14T03:04:46+02:00
 License: CC BY-NC-SA (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -27,7 +27,7 @@ Author: zrajm
   Recently closed tabs" but regardless of age. Requires:
   <ul style="margin-top:.5rem;margin-bottom:.5rem;margin-left:2rem">
     <li>[A data structure](#internal-data-structure)
-    <li>[Continuous saving of history] (while browsing)
+    <li>[Continuous history saving] (while browsing)
     <li>History menu
     <li>Restore tab function
   </ul>
@@ -59,89 +59,207 @@ Author: zrajm
 
 # Internal Data Structure
 
+## Tab State
 
-## `storage.local`
-
-FIXME: Account for a tab having *future* history!
-
-<p><p>Tabs aren't removed from their windows when closed, but only get their
-tab metadata set to 'closed'---that way we can restore them in the same
-position if need be. (Having several thousand tabs shouldn't be a problem, and
-in reality shouldn't really happen). However, if a tab is dragged into another
-window, it's removed from the original window.
+Each tab is stored in `storage.local` in the following format:
 
 ```
-"open": [
-  [META, TABID, TABID, ...],  // a window
-  ...
-]
-"closed": [
-  [META, TABID, TABID, ...],  // a window
-  ...
+tab<REWINTABID>: [
+  META,
+  [URL, DATETIME],         // 1st history entry, URL + load time
+  [URL, DATETIME],         // 2nd history entry
+  ...                      // etc.
 ]
 ```
 
-And for each tab we have:
+Each tab record the full history for that tab. `REWINTABID` is a random
+"collision-safe" 22 byte string.
+
+The first (zeroth) entry in the list (`META`) is an object containing metadata
+for the tab. Possible metadata properties are:
+
+* `closed` (`DATETIME`)---Tab is closed (should either be unset, or set to the
+  `DATETIME` when the tab was closed). NOTA BENE: When a window is closed, the
+  tabs in that window are *not* set to `closed`---this is by design (so that
+  opened tabs can be restored when window is restored).
+* `pos` (integer)---Current position in history. If unset, the last entry is
+  the current entry. If `1` the first entry is the current history item (and
+  all history is in the future). (In the future, with bifurcating history, this
+  may be a list of integers when indicating a position in a bifurcated
+  position.)
+
+History entries consist of an URL, and a `DATETIME` for when the page was
+loaded. (In the future, with bifurcated history, any history item may contain a
+list of items.)
+
+`DATETIME` is Linux epoch time. (In the future, it might be a list with
+`DATETIME` strings, one for each reload of page.) `URL` is the full URL
+including any parameters and hash fragment.
+
+
+### Mapping `tabId`
+
+Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
+following mapping table is used to convert: Browser `tabId` → Rewin `tabId`.
+These mapping values are only available for currently open tabs (as closed tabs
+do not have a browser `tabId`), they are stored in a variable in
+`background.js`, and are never saved to disk. On (browser or extension)
+restart, these mapping values are recalculated from stored data.
 
 ```
-TABID: [
-  DATETIME,        // 0 or time when closed
-  [URL, DATETIME],
-  [URL, DATETIME],
-]
-```
-
-The `TABID`s used above are our own, they do not correspond to the `tab.id`
-used by the browser. (If they did we'd have a heck of a time to rename them on
-when the browser restarts and all the tab IDs are reset.)
-
-
-## `storage.session`
-
-Contains the currently active fake history entries for a tab. As they are
-visited (and their pages loaded for real), they are removed from here, if all
-are removed then the extension stops running a content script for that tab.
-This info is recreated from scratch when the tab is restored, and cleared when
-the tab is closed.
-
-```
-TABID: {
-  FAKEID: URL,
-  …
+let tabMap = {
+    TABID: REWINTABID,
+    ...
 }
 ```
 
-Each unvisited (fake) history entry has an URL parameter "?rewin=FAKEID" which identifies the URL to go to. (There's a random string here to guarantee that each  URL is unique as `pushState()` doesn't allow repeated URLs.)
-
-
--------------------------------------------------------------------------------
-
-
+Get current Rewin data for tab with browser `tabId`:
 
 ```
-// Closed tab should stay associated with its window (but noted as closed)
-//
-// A closed window should be retained (tabs open at closing time should be
-// marked as 'open', those closed before the closing of the window should
-// be marked as 'closed'.)
-
-windows = [
-  winID: [tabId1, tabId2, tabId3, ...],
-]
-
-// Needs to allow for trees.
-history = [
-  tabId1: [
-    {
-      date: "2025-06-03T23:07:51+02:00",
-      url : "http://zrajm.org/rewin/"
-    }
-]
+browser.storage.local.get(tabMap[tabdowId])
+  .then(onGet, onErr)
 ```
 
 
-[Continuous Saving of History]: #continuous-saving-of-history
-# Continuous Saving of History
+### Tab Actions
+
+| When                 | Change                                    |
+|----------------------|-------------------------------------------|
+| Rescan windows       | Create & populate list in `storage.local` |
+| Navigate to new page | Add history entry to end of list          |
+| Navigate in history  | Metadata `pos` is updated                 |
+| Tab created          | Create empty list in `storage.local`      |
+| Tab closed           | Metadata `closed` is set to `true`        |
+| Tab restored         | Metadata `closed` is removed              |
+
+No other operations affect the tab values. **Nota bene:** Closing a window does
+not change any tab values, and closing a tab only updates the tab's metadata
+(it does not affect the window). However, if a tab is dragged from one window
+into another, it's removed from the original window.
+
+
+## Window State
+
+There are two lists of windows: Currently open windows, and windows that have
+been closed. These are stored in the following `storage.local` entries:
+
+```
+'open': [
+  [META, REWINTABID, REWINTABID, ...],
+  ...
+]
+'closed': [
+  [META, REWINTABID, REWINTABID, ...],
+  ...
+]
+```
+
+In the future, the way windows are stored might change (if the above schema
+turns out to be too slow or impractical).
+
+The values `'open'` and `'closed'` are literal strings, each containing a
+list-of-lists, where the inner list each represent a window.
+
+Each window record contains a list of all the tabs (open *and* closed) for that
+window. `REWINWINID` is a random "collision-safe" 22 byte string.
+
+The first (zeroth) entry in the list (`META`) is an object containing metadata
+for the window. Possible metadata properties are:
+
+* `closed` (`DATETIME`)---Window is closed (should either be unset, or set to
+  the `DATETIME` when the tab was closed). NOTA BENE: When a window is closed,
+  the tabs in that window are *not* set to `closed`---this is by design (so
+  that opened tabs can be restored when window is restored).
+* `incognito` (Boolean)---Indicates an incognito window.
+* `pos` (integer)---The currently selected tab.
+
+For the currently open windows, there's also an internal mapping between each
+from the browser `windowId` to the corresponding entry in `windowsOpen`.
+
+Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
+browser `tabId` can be converted to Rewin `tabId`, using the following internal
+map. (This is a variable set in `background.js`, it is not stored on disk, but
+instead reconstructed when needed).
+
+### Mapping `windowId`
+
+Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
+following mapping table is used to convert: Browser `windowId` → Rewin `winId`.
+These mapping values are only available for currently open windows (as closed
+windows do not have a browser `windowId`), they are stored in a variable in
+`background.js`, and are never saved to disk. On (browser or extension)
+restart, these mapping values are recalculated from stored data.
+
+```
+let winMap = {
+    WINDOWID: REWINWINID,
+    ...
+}
+```
+
+Get current Rewin data for window with browser `windowId`:
+
+```
+browser.storage.local.get(winMap[windowId])
+  .then(onGet, onErr)
+```
+
+
+### Window Actions
+
+| When                      | Change                                    |
+|---------------------------|-------------------------------------------|
+| Rescan windows            | Create & populate list in `storage.local` |
+| Window created            | Added to `openWindows`                    |
+| Window closed             | Moved `openWindows` → `closedWindows`     |
+| Window restored           | Moved `closedWindows` → `openWindows`     |
+| Tab created               | Add tab to its window                     |
+| Tab moved between windows | Remove from window, add in other window   |
+
+No other operations affect the window values. **Nota bene:** Closing a window
+does not change any tab values, and closing a tab only updates the tab's
+metadata (it does not affect the window). However, if a tab is dragged from one
+window into another, it's removed from the original window.
+
+
+## Fake History Entries
+
+The current approach to restoring history entries involves faking them. This is
+because the entries are created by means of `history.pushState()`, which
+requires that each inserted history item share the same [origin] (that is, the
+same *protocol* and *domain*) as page currently loaded when `pushState()` is
+invoked.
+
+As a workaround, these (fake) history items are given URL parameters which
+specify the URL that should actually be loaded (`rewin_url`), and a random
+string (`rewin`) which guarantees that each URL is unique (as `pushState()`
+will fail to insert an URL that is already present elsewhere in the history).
+
+When the user then navigates to one of the fake entries, the page is reloaded
+using the correct URL. This document reload is performed by a content script,
+and this content script keeps track of any remaining, not-yet-reloaded history
+entries. As these history entries are visited they are removed from the
+internal state of the content script, and if all of the fake entries are
+visited, then content script quietly exits (its job done).
+
+This info is recreated when a tab is restored, and cleared when the tab is
+closed.
+
+```
+let histMap = {
+  TABID: {
+    FAKEID: URL,
+    ...
+  }
+}
+```
+
+In the future, history *might* be populated with `tabs.update()`, in which case
+these fake history entries will not be needed.
+
+
+[Continuous History Saving]: #continuous-history-saving
+# Continuous History Saving
 
 Rewin monitors user page navigation, and whenever a page is added or updated in
 history (through navigation, or Javascript `replaceState()` or `pushState()`)
@@ -374,17 +492,16 @@ up/thumbs down.)
 
 # Related Research
 
-* [Reddit r/firefox: Session manager addon that restores history of tabs as well]
-* [Bugzilla Bug #1378651: Allow accessing back-forward history for each tab]
-* [Bugzilla Bug #1381922: Allow modifying/restoring back-forward history for each tab]
-* [Bugzilla Bug #1413525: Implement a general mechanism for saving sessions]
-
-* [Reddit r/firefox: Are there really no session manager add-ons that can save tab history?]
-* [Tab-Session-Manager Github Issue: Preserve Tab History #27]
+* [Bugzilla #1378651: Allow accessing back-forward history for each tab]
+* [Bugzilla #1381922: Allow modifying/restoring back-forward history for each tab]
+* [Bugzilla #1413525: Implement a general mechanism for saving sessions]
 * [Chromium Bug #40384007: History of a specific TAB]
+* [Tab-Session-Manager Github Issue: Preserve Tab History #27]
+* [Reddit r/firefox: Session manager addon that restores history of tabs as well]
+* [Reddit r/firefox: Are there really no session manager add-ons that can save tab history?]
 
 
-## Alternative User Interfaces
+## Alternative Tab Interfaces
 
 * [Lossless Web Navigation with Trails]---Argues that when link is opened in a
   new tab (or window) it should to retain all its history (as if 'Duplicate
@@ -396,9 +513,9 @@ up/thumbs down.)
 -------------------------------------------------------------------------------
 
 [A Spacial Model for Lossless Web Navigation]: https://www.freecodecamp.org/news/lossless-web-navigation-spatial-model-37f83438201d
-[Bugzilla Bug #1378651: Allow accessing back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1378651
-[Bugzilla Bug #1381922: Allow modifying/restoring back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1381922
-[Bugzilla Bug #1413525: Implement a general mechanism for saving sessions]: https://bugzilla.mozilla.org/show_bug.cgi?id=1413525
+[Bugzilla #1378651: Allow accessing back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1378651
+[Bugzilla #1381922: Allow modifying/restoring back-forward history for each tab]: https://bugzilla.mozilla.org/show_bug.cgi?id=1381922
+[Bugzilla #1413525: Implement a general mechanism for saving sessions]: https://bugzilla.mozilla.org/show_bug.cgi?id=1413525
 [Chromium Bug #40384007: History of a specific TAB]: https://issues.chromium.org/issues/40384007
 [Features gated by user activation]: https://developer.mozilla.org/en-US/docs/Web/Security/User_activation "MDN: Features gated by user activation"
 [History API]: https://developer.mozilla.org/en-US/docs/Web/API/History_API/Working_with_the_History_API "MDN: Working with the History API"
