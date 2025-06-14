@@ -7,6 +7,7 @@ License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
 
+
 # Rewin: A Firefox Extension
 
 > This is a Firefox extension that restores tabs and windows, including their
@@ -135,7 +136,13 @@ browser.storage.local.get(tabMap[tabdowId])
 No other operations affect the tab values. **Nota bene:** Closing a window does
 not change any tab values, and closing a tab only updates the tab's metadata
 (it does not affect the window). However, if a tab is dragged from one window
-into another, it's removed from the original window.
+into another, that tab is removed from the original window (and inserted into
+the new one).
+
+The reason for closed tabs being kept in-place, is so that they can be restored
+them in the same position if need be. (Even with several thousand tabs in one
+window this shouldn't be a problem, and all likelihood that many tabs are
+unlikely to accumulate).
 
 
 ## Window State
