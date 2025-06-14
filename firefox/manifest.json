@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Rewin",
+  "version": "0.1",
+  "description": "EXPERIMENTAL: Save/restore tabs and their history.",
+  "homepage_url": "https://zrajm.org/rewin",
+  "incognito": "spanning",
+  "icons": {
+    "16": "rewin.svg",
+    "32": "rewin.svg",
+    "48": "rewin.svg",
+    "128": "rewin.svg",
+    "192": "rewin.svg",
+    "512": "rewin.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "rewin@zrajm.org"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "webNavigation",
+    "history",
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": ["rewin.js"]
+  },
+  "action": {
+    "default_icon": {
+      "16": "rewin.svg",
+      "32": "rewin.svg",
+      "48": "rewin.svg",
+      "64": "rewin.svg",
+      "128": "rewin.svg"
+    },
+    "default_title": "Rewin",
+    "default_popup": "rewin.html"
+  }
+}

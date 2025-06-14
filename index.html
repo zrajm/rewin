@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-06-14T03:10:32+02:00
+Updated: 2025-06-14T12:11:28+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -21,13 +21,36 @@ Author: zrajm
 -------------------------------------------------------------------------------
 
 
+# The Source Files
+
+Below is the are files needed to run the Firefox extension.---As of now the
+extension still does not implement even basic functionality, so I can't really
+recommend that you download it (yet). However, if you really want to, you're
+welcome to try it out. :)
+
+| Function                       | File                                   |
+|--------------------------------|----------------------------------------|
+| Firefox manifest (version 3)   | <nobr>[`firefox/manifest.json`]</nobr> |
+| Popup menu                     | [`firefox/rewin.html`]                 |
+| Background script              | [`firefox/rewin.js`]                   |
+| Extension icon                 | [`firefox/rewin.svg`]                  |
+| Extension icon (when disabled) | <nobr>[`firefox/rewin-off.svg`]</nobr> |
+
+[`firefox/manifest.json`]: firefox/manifest.json
+[`firefox/rewin.html`]: firefox/rewin.html
+[`firefox/rewin.js`]: firefox/rewin.js
+[`firefox/rewin-off.svg`]: firefox/rewin-off.svg
+[`firefox/rewin.svg`]: firefox/rewin.svg
+
+
 # Milestones
 
 <ul>
   <li>**Version 0.1: *Basic Functionality***---Like browser's "History ›
   Recently closed tabs" but regardless of age. Requires:
   <ul style="margin-top:.5rem;margin-bottom:.5rem;margin-left:2rem">
-    <li>[A data structure](#internal-data-structure)
+    <li>[~~A data structure~~](#internal-data-structure) (DONE)
+    <li>~~Design popup menu~~ (DONE)
     <li>[Continuous history saving] (while browsing)
     <li>History menu
     <li>Restore tab function

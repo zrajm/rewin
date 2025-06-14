@@ -1,0 +1,128 @@
+<!DOCTYPE html><!--*- ispell-dictionary: "sv"; js-indent-level: 2; css-indent-offset: 2 -*-->
+<!-- Copyright 1999-2025 by zrajm. Licenses: CC BY-SA (text), GPLv2 (code). -->
+<meta charset="utf-8">
+<meta name=viewport content=width=device-width,initial-scale=1.0,viewport-fit=cover>
+<style>
+  *, :before, :after { box-sizing: inherit; padding: 0; margin: 0 }
+  body {
+    box-sizing: border-box;
+    background: #42414d;
+    color: #fbfbfe;
+    font: 15px/normal Ubuntu, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Roboto, 'Helvetica Neue', Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
+    margin: 4px;
+    cursor: default;
+  }
+  dev.menu { display: flex; flex-flow: column nowrap; }
+  a, p, small {
+    display: flex; flex-flow: row nowrap; /* flex-direction + flex-wrap */
+    flex: 1 0 auto; /* flex-grow + flex-shrink + flex-basis */
+    align-items: center;
+    padding: 0 8px;
+    border-radius: 4px;
+    height: 24px;
+  }
+  a:hover, a.hilite { background: #fff2 }
+  a[arrow]:after, a[key]:after {
+    flex: 0 1 auto; /* flex-grow + flex-shrink + flex-basis */
+    color: #fefeff;
+    opacity: 69%;
+    content: attr(key);
+    padding-left: 8px;
+    margin-left: auto;
+  }
+  a[arrow]:after {
+    content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path fill="none" stroke="%23fefeff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1" d="M5 2.5 10.5 8 5 13.5"/></svg>');
+  }
+  div.history a:before {
+    flex: 0 0 auto;
+    content: url(circle.svg);
+    content: '';
+    height: 16px; width: 16px;
+    margin-right: 8px;
+    /* background-image: url('circle.svg'), #88f; */
+    background: attr(icon url), url(./circle.svg);
+
+
+    /* Load image from 'icon' attribute, fall back to 'circle.svg' */
+    /* background-image: url(rewin.svg); */
+    /* background-size: contain; */
+    /* background-repeat: no-repeat; */
+    /* background-position: center; */
+
+    background: url(rewin.svg) center / contain no-repeat;
+  }
+  small {
+    font-size: 11px;
+    padding: 4px 8px;
+    opacity: 69%;
+  }
+  hr {
+    margin: 4px 0;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid #fefeff;
+    opacity: 25%;
+  }
+</style>
+<div class=menu>
+  <a arrow>Restore Tabs</a>
+  <a arrow>Restore Windows</a>
+  <hr>
+  <a>Export History…</a>
+  <hr>
+  <small>Tab History</small>
+  <div class=history>
+    <a>The Ultimate Guide to Remote Work</a>
+    <a>Our Services | [Your Company Name]</a>
+    <a key="(Current)" class=hilite>About Us - Learn Our Story</a>
+    <a key="Ctrl+Shift+1">Contact [Your Business Name]</a>
+    <a key="Ctrl+Shift+2">New Study Reveals AI's Impact</a>
+    <a key="Ctrl+Shift+3">How to Master Public Speaking</a>
+    <a key="Ctrl+Shift+4">Limited-Time Offer: Save 20% Now!</a>
+    <a key="Ctrl+Shift+5">Portfolio: Web Design Projects</a>
+    <a key="Ctrl+Shift+6">Frequently Asked Questions (FAQ)</a>
+    <a key="Ctrl+Shift+7">Home | Your Personal Blog</a>
+    <a key="Ctrl+Shift+8" icon="rewin.svg">The Ultimate Guide to Remote Work</a>
+    <a key="Ctrl+Shift+9">Our Services | [Your Company Name]</a>
+    <a key="Ctrl+Shift+0">About Us - Learn Our Story</a>
+    <a>Contact [Your Business Name]</a>
+    <a>New Study Reveals AI's Impact</a>
+    <a>How to Master Public Speaking</a>
+    <a>Limited-Time Offer: Save 20% Now!</a>
+    <a>Portfolio: Web Design Projects</a>
+    <a>Frequently Asked Questions (FAQ)</a>
+    <a>Home | Your Personal Blog</a>
+    <a>The Ultimate Guide to Remote Work</a>
+    <a>Our Services | [Your Company Name]</a>
+    <a>About Us - Learn Our Story</a>
+    <a>Contact [Your Business Name]</a>
+    <a>New Study Reveals AI's Impact</a>
+    <a>How to Master Public Speaking</a>
+    <a>Limited-Time Offer: Save 20% Now!</a>
+    <a>Portfolio: Web Design Projects</a>
+    <a>Frequently Asked Questions (FAQ)</a>
+    <a>Home | Your Personal Blog</a>
+    <a>The Ultimate Guide to Remote Work</a>
+    <a>Our Services | [Your Company Name]</a>
+    <a>About Us - Learn Our Story</a>
+    <a>Contact [Your Business Name]</a>
+    <a>New Study Reveals AI's Impact</a>
+    <a>How to Master Public Speaking</a>
+    <a>Limited-Time Offer: Save 20% Now!</a>
+    <a>Portfolio: Web Design Projects</a>
+    <a>Frequently Asked Questions (FAQ)</a>
+    <a>Home | Your Personal Blog</a>
+    <a>The Ultimate Guide to Remote Work</a>
+    <a>Our Services | [Your Company Name]</a>
+    <a>About Us - Learn Our Story</a>
+    <a>Contact [Your Business Name]</a>
+    <a>New Study Reveals AI's Impact</a>
+    <a>How to Master Public Speaking</a>
+    <a>Limited-Time Offer: Save 20% Now!</a>
+    <a>Portfolio: Web Design Projects</a>
+    <a>Frequently Asked Questions (FAQ)</a>
+    <a>Home | Your Personal Blog</a>
+  </div>
+</div>
+<!--[eof]-->

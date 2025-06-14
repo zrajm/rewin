@@ -2,8 +2,7 @@
 
 * TODO Add README
 * Firefox plugin
-** [0/6] Milestone Version 0.1---Basic Functionality
-*** TODO Write data structure section
+** [1/6] Milestone Version 0.1---Basic Functionality
 *** TODO Continuous saving of history
 *** TODO Implement history saving
 *** TODO Implement history popup
@@ -16,6 +15,8 @@
     based on that.
 
     This function is basically sure to be triggered on install.
+
+    browser.tabs.goBack(tabId).then(onGoBack, onError)
 ** [0/1] Milestone Version 0.2---Restore Window
 *** TODO 'Restore window' function
 *** TODO Add Rewin to zrajm.org main menu
@@ -92,7 +93,12 @@
 *** TODO Make history searchable
     What would this entail? Should only history be searchable? (If so, it might
     need to be added to the Rewin internal state.)
-* [1/1] FINISHED
-** DONE Add license files
+* [3/3] FINISHED
+** DONE Write data structure section
    CLOSED: [2025-06-14 Sat 03:05]
+** DONE Add license files
+   CLOSED: [2025-06-14 Sat 03:10]
+** DONE Designed a popup menu
+   CLOSED: [2025-06-14 Sat 11:37]
+   Doesn't really have any logic (yet).
 * [eof]
