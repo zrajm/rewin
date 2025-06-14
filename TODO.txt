@@ -1,7 +1,6 @@
 -*- org -*-
 
 * TODO Add README
-* TODO Add license files
 * Firefox plugin
 ** [0/6] Milestone Version 0.1---Basic Functionality
 *** TODO Write data structure section
@@ -93,4 +92,7 @@
 *** TODO Make history searchable
     What would this entail? Should only history be searchable? (If so, it might
     need to be added to the Rewin internal state.)
+* [1/1] FINISHED
+** DONE Add license files
+   CLOSED: [2025-06-14 Sat 03:05]
 * [eof]
