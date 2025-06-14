@@ -149,6 +149,7 @@ a.img:hover:before, a:not(.img):hover {
   background: #fb44;
   z-index: -1;
 }
+td, th { padding: 0 .25em }
 td, th {
   &[href] {
     position: relative;
