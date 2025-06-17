@@ -1,160 +1,189 @@
-<!DOCTYPE html><!--*- ispell-dictionary: "sv"; js-indent-level: 2; css-indent-offset: 2 -*-->
+<!DOCTYPE html><!--*- js-indent-level: 2; css-indent-offset: 2 -*-->
 <!-- Copyright 2025 by zrajm. Licenses: CC BY-SA (text), GPLv2 (code). -->
 <meta charset="utf-8">
-<meta name=viewport content=width=device-width,initial-scale=1.0,viewport-fit=cover>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sliding Menu</title>
 <style>
   *, :before, :after { box-sizing: inherit; padding: 0; margin: 0 }
-  body {
+  html {
     box-sizing: border-box;
-    background: #42414d;
-    color: #fbfbfe;
+    overflow-x: hidden;
     font: 15px/normal Ubuntu, -apple-system, BlinkMacSystemFont, 'Segoe UI',
           Roboto, 'Helvetica Neue', Oxygen-Sans, Ubuntu, Cantarell, sans-serif;
-    margin: 4px;
+    scroll-behavior: smooth;
+    max-width: 400px;
+  }
+  body {
     cursor: default;
+    background: #42414d;
+    color: #fbfbfe;
   }
-  dev.menu { display: flex; flex-flow: column nowrap; }
-  div.item, div.heading {
-    display: flex; flex-flow: row nowrap; /* flex-direction + flex-wrap */
-    align-items: center;
-    padding: 0 8px;
-    border-radius: 4px;
-    height: 24px;
-    max-width: 500px;
-    white-space: nowrap;
-    &:not(.heading):hover, &.current { background: #fff2 }
-    & img {
-      flex: 0 0 auto; /* grow + shrink + basis */
-      height: 16px; width: 16px;
-      margin-right: 8px;
-    }
-    & a {
-      color: #fbfbfe;
-      text-decoration: none;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    & span {
-      flex: 0 0 auto;
-      color: #fefeff; opacity: 69%;
-      padding-left: 8px;
-      margin-left: auto;
-    }
-    & span[arrow] {
-      content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path fill="none" stroke="%23fefeff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.1" d="M5 2.5 10.5 8 5 13.5"/></svg>');
-    }
+  a {
+    overflow-x: hidden; color: inherit; text-decoration: none;
+    &:hover, &.current { background: #fff2 }
   }
-  div.heading {
-    font-size: 11px;
-    padding: 4px 8px;
-    opacity: 69%;
+  /* Menu item appearance. */
+  div[id] {
+    /* Menu items are <a>, <small> or <hr>. */
+    & > :is(a, small) { /* menu items */
+      &:is(small) { opacity: 69%; font-size: 11px } /* small text */
+      &:is(a) {                                     /* clickable item */
+        & > span { overflow: hidden; text-overflow: ellipsis }
+        & > img { height: 16px; width: 16px; margin-right: 8px }
+        &[key],
+        &[href^="#"]:not([href="#"]) {  /* FIXME: rewrite selector? */
+          &:before, &:after { opacity: 69%; }
+          &:after  { padding-left : 8px; margin-left: auto }
+          &:before { padding-right: 8px }
+          &[key]:after { content: attr(key) } /* keyboard shortcut */
+          &:not([key]) {
+            &:before, &:after { height: 16px; }
+            &:first-child {             /* 1st item in submenu */
+              font-weight: bold;
+              &:before { content: url("popup-prev.svg") }
+            }
+            &:not(:first-child):after { /* other items */
+              content: url("popup-next.svg");
+            }
+          }
+        }
+      }
+      display: flex; flex-flow: row nowrap; /* flex-direction + flex-wrap */
+      align-items: center;
+      white-space: nowrap;
+      padding: 0 8px; height: 24px; border-radius: 4px;
+    }
+    & > hr {
+      opacity: 25%; margin: 4px 0; height: 1px;
+      border: 0; border-top: 1px solid #fefeff;
+    }
+    padding: 4px;
   }
-  hr {
-    margin: 4px 0;
-    height: 1px;
-    border: 0;
-    border-top: 1px solid #fefeff;
-    opacity: 25%;
+  /* Menu scrolling left/right. */
+  div[id] {
+    &[id="top"] { position: relative }
+    & div[id] { position: absolute; width: 100%; height: 100%; left: 100%; top: 0; }
+
+    /* Show, top menu, or submenu that match URL hash fragment. */
+    visibility: hidden;
+    &[id="top"]:not(:has(:target)), &:target { visibility: visible }
+
+    /* Delay 'visibility' toggling until animation is done. */
+    transition: visibility .5s;
   }
   a[badge]:after {
-    position: absolute; 
-    background: #f00;
-    box-shadow: 0 0 2px #000;
-    content: '';
-    font-size: 11px;
-    padding: 0 2px;
     border-radius: 5px;
-    margin-left:2px;
-    width: 8px;
-    height: 8px;
+    position: relative; top: -4px;
+    content: attr(badge);
+    background: #f00; box-shadow: 0 0 2px #0008;
+    font-size: 11px;
+    padding: 0 4px;
+    margin-left: 2px;
+    min-width: 8px;
+    min-height: 8px;
   }
 </style>
-<div class=menu>
-  <div class=item title="Rewin is missing history for this tab.
-(Fixing may lose context or form info.)"><a badge>Reindex tab history</a></div>
+<div id=top>
+  <a href="#" badge>Scan this tab’s history</a>
   <hr>
-  <div class=item><a>Restore Tabs</a><span arrow></span></div>
-  <div class=item><a>Restore Windows</a><span arrow></span></div>
-  <hr>
-  <div class=heading>Tab History</div>
-  <div class=history>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=history+of+Viking+exploration" target=_blank
-      >history of Viking exploration - Google Search</a></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Norse_exploration_of_North_America" target=_blank
-      >Norse exploration of North America - Wikipedia</a></div>
-    <div class="item current"><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/L%27Anse_aux_Meadows" target=_blank
-      >L'Anse aux Meadows - Wikipedia</a><span>(Current)</span></div>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=L%27Anse+aux+Meadows+reconstruction&tbm=isch" target=_blank
-      >L'Anse aux Meadows reconstruction - Google Search</a><span>Ctrl+Shift+1</span></div>
-    <div class=item><img src="icon/nationalgeographic.png" height=16 width=16>
-      <a href="https://www.nationalgeographic.com/photo-of-the-day/2023/10/vikings-settlement-lanse-aux-meadows.jpg" target=_blank
-      >Viking Settlement at L'Anse aux Meadows - National Geographic</a><span>Ctrl+Shift+2</span></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Leif_Erikson" target=_blank
-      >Leif Erikson - Wikipedia</a><span>Ctrl+Shift+3</span></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Vinland" target=_blank
-      >Vinland - Wikipedia</a><span>Ctrl+Shift+4</span></div>
-    <div class=item><img src="icon/google-maps.png" height=16 width=16>
-      <a href="https://www.google.com/maps/search/L%27Anse+aux+Meadows+National+Historic+Site" target=_blank
-      >L'Anse aux Meadows National Historic Site - Google Maps</a><span>Ctrl+Shift+5</span></div>
-    <div class=item><img src="icon/google-maps.png" height=16 width=16>
-      <a href="https://www.google.com/maps/place/L%27Anse+aux+Meadows+National+Historic+Site/@51.485123,-55.539878,14z" target=_blank
-      >L'Anse aux Meadows National Historic Site</a><span>Ctrl+Shift+6</span></div>
-    <div class=item><img src="icon/parks-canada.png" height=16 width=16>
-      <a href="https://parks.canada.ca/lhn-nhs/nl/lanseauxmeadows" target=_blank
-      >L'Anse aux Meadows National Historic Site - Parks Canada</a><span>Ctrl+Shift+7</span></div>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=flights+to+newfoundland" target=_blank
-      >flights to newfoundland - Google Search</a><span>Ctrl+Shift+8</span></div>
-    <div class=item><img src="icon/expedia.png" height=16 width=16>
-      <a href="https://www.expedia.com/flights/St-Johns-Newfoundland.d60527.Travel-Guide-Flights" target=_blank
-      >Flights to St. John's, Newfoundland and Labrador - Expedia</a><span>Ctrl+Shift+9</span></div>
-    <div class=item><img src="icon/tripadvisor.png" height=16 width=16>
-      <a href="https://www.tripadvisor.com/Attractions-g154962-Activities-Newfoundland_and_Labrador.html" target=_blank
-      >THE 10 BEST Things to Do in Newfoundland and Labrador</a><span>Ctrl+Shift+0</span></div>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=Viking+artifacts+Newfoundland+museum" target=_blank
-      >Viking artifacts Newfoundland museum - Google Search</a></div>
-    <div class=item><img src="icon/therooms.png" height=16 width=16>
-      <a href="https://www.therooms.ca/" target=_blank
-      >The Rooms - Art Gallery, Museum, Archives</a></div>
-    <div class=item><img src="icon/youtube.png" height=16 width=16>
-      <a href="https://www.youtube.com/results?search_query=documentary+L%27Anse+aux+Meadows" target=_blank
-      >documentary L'Anse aux Meadows - YouTube</a></div>
-    <div class=item><img src="icon/youtube.png" height=16 width=16>
-      <a href="https://www.youtube.com/watch?v=ABCDEFG123" target=_blank
-      >Secrets of the Viking Discoverers: L'Anse aux Meadows</a></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Thorfinn_Karlsefni" target=_blank
-      >Thorfinn Karlsefni - Wikipedia</a></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Skraelings" target=_blank
-      >Skraelings - Wikipedia</a></div>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=Saga+of+Erik+the+Red" target=_blank
-      >Saga of Erik the Red - Google Search</a></div>
-    <div class=item><img src="icon/wikipedia.png" height=16 width=16>
-      <a href="https://en.wikipedia.org/wiki/Saga_of_Erik_the_Red" target=_blank
-      >Saga of Erik the Red - Wikipedia</a></div>
-    <div class=item><img src="icon/gutenberg.png" height=16 width=16>
-      <a href="https://www.gutenberg.org/ebooks/172" target=_blank
-      >The Saga of Erik the Red by Anonymous - Project Gutenberg</a></div>
-    <div class=item><img src="icon/google.png" height=16 width=16>
-      <a href="https://www.google.com/search?q=best+books+on+Viking+history" target=_blank
-      >best books on Viking history - Google Search</a></div>
-    <div class=item><img src="icon/goodreads.png" height=16 width=16>
-      <a href="https://www.goodreads.com/shelf/show/viking-history" target=_blank
-      >Best Viking History Books (408 books)</a></div>
-    <div class=item><img src="icon/amazon.png" height=16 width=16>
-      <a href="https://www.amazon.com/Vikings-History-Peoples-Migration-Penguin/dp/0143126521" target=_blank
-      >The Vikings: A History (Penguin History of the World): Else Roesdahl: Amazon.com</a></div>
+  <a href="#tabs">Restore Tabs</a>
+  <div id=tabs>
+    <a href="#top">Restore Tabs</a>
+    <hr>
+    <a href="#tabs2">tabs2</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <div id=tabs2>
+      <a href="#tabs">Tabs2</a>
+      <hr>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+      <a href="#">SOUCHSOUHSRCHU</a>
+    </div>
+  </div>
+  <a href="#wins">Restore Windows</a>
+  <div id=wins>
+    <a href="#top">Restore Windows</a>
+    <hr>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
+    <a href="#">SOUCHSOUHSRCHU</a>
   </div>
   <hr>
-  <div class=item><a>Export History…</a></div>
+  <small>History</small>
+  <a href="https://www.google.com/search?q=history+of+Viking+exploration">
+    <img src="icon/google.png"><span>history of Viking exploration - Google Search</span></a>
+  <a href="https://en.wikipedia.org/wiki/Norse_exploration_of_North_America">
+    <img src="icon/wikipedia.png"><span>Norse exploration of North America - Wikipedia</span></a>
+  <a href="https://en.wikipedia.org/wiki/L%27Anse_aux_Meadows" class=current key="(Current)">
+    <img src="icon/wikipedia.png"><span>L'Anse aux Meadows - Wikipedia</span></a>
+  <a href="https://www.google.com/search?q=L%27Anse+aux+Meadows+reconstruction&tbm=isch" key="Ctrl+Shift+1">
+    <img src="icon/google.png"><span>L'Anse aux Meadows reconstruction - Google Search</span></a>
+  <a href="https://www.nationalgeographic.com/photo-of-the-day/2023/10/vikings-settlement-lanse-aux-meadows.jpg" key="Ctrl+Shift+2">
+    <img src="icon/nationalgeographic.png"><span>Viking Settlement at L'Anse aux Meadows - National Geographic</span></a>
+  <a href="https://en.wikipedia.org/wiki/Leif_Erikson" key="Ctrl+Shift+3">
+    <img src="icon/wikipedia.png"><span>Leif Erikson - Wikipedia</span></a>
+  <a href="https://en.wikipedia.org/wiki/Vinland" key="Ctrl+Shift+4">
+    <img src="icon/wikipedia.png"><span>Vinland - Wikipedia</span></a>
+  <a href="https://www.google.com/maps/search/L%27Anse+aux+Meadows+National+Historic+Site" key="Ctrl+Shift+5">
+    <img src="icon/google-maps.png"><span>L'Anse aux Meadows National Historic Site - Google Maps</span></a>
+  <a href="https://www.google.com/maps/place/L%27Anse+aux+Meadows+National+Historic+Site/@51.485123,-55.539878,14z" key="Ctrl+Shift+6">
+    <img src="icon/google-maps.png"><span>L'Anse aux Meadows National Historic Site</span></a>
+  <a href="https://parks.canada.ca/lhn-nhs/nl/lanseauxmeadows" key="Ctrl+Shift+7">
+    <img src="icon/parks-canada.png"><span>L'Anse aux Meadows National Historic Site - Parks Canada</span></a>
+  <a href="https://www.google.com/search?q=flights+to+newfoundland" key="Ctrl+Shift+8">
+    <img src="icon/google.png"><span>flights to newfoundland - Google Search</span></a>
+  <a href="https://www.expedia.com/flights/St-Johns-Newfoundland.d60527.Travel-Guide-Flights" key="Ctrl+Shift+9">
+    <img src="icon/expedia.png"><span>Flights to St. John's, Newfoundland and Labrador - Expedia</span></a>
+  <a href="https://www.tripadvisor.com/Attractions-g154962-Activities-Newfoundland_and_Labrador.html" key="Ctrl+Shift+0">
+    <img src="icon/tripadvisor.png"><span>THE 10 BEST Things to Do in Newfoundland and Labrador</span></a>
+  <a href="https://www.google.com/search?q=Viking+artifacts+Newfoundland+museum">
+    <img src="icon/google.png"><span>Viking artifacts Newfoundland museum - Google Search</span></a>
+  <a href="https://www.therooms.ca/">
+    <img src="icon/therooms.png"><span>The Rooms - Art Gallery, Museum, Archives</span></a>
+  <a href="https://www.youtube.com/results?search_query=documentary+L%27Anse+aux+Meadows">
+    <img src="icon/youtube.png"><span>documentary L'Anse aux Meadows - YouTube</span></a>
+  <a href="https://www.youtube.com/watch?v=ABCDEFG123">
+    <img src="icon/youtube.png"><span>Secrets of the Viking Discoverers: L'Anse aux Meadows</span></a>
+  <a href="https://en.wikipedia.org/wiki/Thorfinn_Karlsefni">
+    <img src="icon/wikipedia.png"><span>Thorfinn Karlsefni - Wikipedia</span></a>
+  <a href="https://en.wikipedia.org/wiki/Skraelings">
+    <img src="icon/wikipedia.png"><span>Skraelings - Wikipedia</span></a>
+  <a href="https://www.google.com/search?q=Saga+of+Erik+the+Red">
+    <img src="icon/google.png"><span>Saga of Erik the Red - Google Search</span></a>
+  <a href="https://en.wikipedia.org/wiki/Saga_of_Erik_the_Red">
+    <img src="icon/wikipedia.png"><span>Saga of Erik the Red - Wikipedia</span></a>
+  <a href="https://www.gutenberg.org/ebooks/172">
+    <img src="icon/gutenberg.png"><span>The Saga of Erik the Red by Anonymous - Project Gutenberg</span></a>
+  <a href="https://www.google.com/search?q=best+books+on+Viking+history">
+    <img src="icon/google.png"><span>best books on Viking history - Google Search</span></a>
+  <a href="https://www.goodreads.com/shelf/show/viking-history">
+    <img src="icon/goodreads.png"><span>Best Viking History Books (408 books)</span></a>
+  <a href="https://www.amazon.com/Vikings-History-Peoples-Migration-Penguin/dp/0143126521">
+    <img src="icon/amazon.png"><span>The Vikings: A History (Penguin History of the World): Else Roesdahl: Amazon.com</span></a>
+  <hr>
+  <a href="#">Export History…</a>
 </div>
 <!--[eof]-->

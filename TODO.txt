@@ -5,7 +5,10 @@
 ** [1/6] Milestone Version 0.1---Basic Functionality
 *** TODO Continuous saving of history
 *** TODO Implement history saving
-*** TODO Implement history popup
+*** [0/2] Implement popup menu
+**** TODO Popup should show actual history
+**** TODO Popup should show 'Restore Tabs'
+**** TODO Popup should show 'Restore Windows'
 *** TODO 'Restore tab' function
 *** TODO Update Rewin internal state
     Rewin should look at presently existing tabs and windows, and if there are
@@ -23,6 +26,16 @@
 ** [0/1] Milestone Version 1.0---Browser Restart
 *** TODO Reassociate existing windows with internal history data on restart
     https://stackoverflow.com/a/14518800/351162
+** TODO Popup should allow for up/down arrow key navigation
+   + → = open (selected) submenu (same as enter or space)
+   + ← = go back one submenu
+   + ↓ = same as Tab
+   + ↑ = same as Shift+Tab
+** TODO Popup should have centered Submenu headings
+   Just like in Firefox menus, under e.g. "History > Bookmarks" then
+   "Bookmarks" is the centered name at the top of the submenu.
+** TODO Popup scrolling in submenus
+   Scroll position of the parent menu should not affect submenu.
 ** TODO Use `browser.tabs.update()` to load tabs?
    This would mean that we don't need any content scripts (I think).
 
