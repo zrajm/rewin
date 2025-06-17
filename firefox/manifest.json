@@ -29,7 +29,7 @@
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["rewin.js"]
+    "scripts": ["rewin-background.js"]
   },
   "action": {
     "default_icon": {
@@ -40,6 +40,6 @@
       "128": "rewin.svg"
     },
     "default_title": "Rewin",
-    "default_popup": "rewin.html"
+    "default_popup": "rewin-popup.html"
   }
 }
