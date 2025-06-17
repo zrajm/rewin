@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-06-14T12:11:28+02:00
+Updated: 2025-06-17T22:28:20+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -90,13 +90,13 @@ Each tab is stored in `storage.local` in the following format:
 ```
 tab<REWINTABID>: [
   META,
-  [URL, DATETIME],         // 1st history entry, URL + load time
-  [URL, DATETIME],         // 2nd history entry
-  ...                      // etc.
+  [URL, TITLE, FAVICON, DATETIME],  // 1st history entry
+  [URL, TITLE, FAVICON, DATETIME],  // 2nd entry
+  ...                               // etc.
 ]
 ```
 
-Each tab record the full history for that tab. `REWINTABID` is a random
+The tab record contains the full history for that tab. `REWINTABID` is a random
 "collision-safe" 22 byte string.
 
 The first (zeroth) entry in the list (`META`) is an object containing metadata
@@ -112,13 +112,14 @@ for the tab. Possible metadata properties are:
   may be a list of integers when indicating a position in a bifurcated
   position.)
 
-History entries consist of an URL, and a `DATETIME` for when the page was
-loaded. (In the future, with bifurcated history, any history item may contain a
-list of items.)
+Each history entry is an array containing:
 
-`DATETIME` is Linux epoch time. (In the future, it might be a list with
-`DATETIME` strings, one for each reload of page.) `URL` is the full URL
-including any parameters and hash fragment.
+* `URL`---The full address of the loaded page (after possible redirects).
+  Includes URL parameters and hash fragment.
+* `TITLE`---Page title (`document.title`) for the loaded page.
+* `FAVICON`---The favicon data for the page.
+* `DATETIME`---Unix epoch time when page was loaded. (In the future, this might
+  be replaced with a list of load times.)
 
 
 ### Mapping `tabId`
