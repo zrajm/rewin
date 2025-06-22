@@ -97,10 +97,10 @@ function onButton(tab) {
 
       //location.reload()
 
-      // Random string (18 byte = 144bit = 24 characters in websafe base64).
+      // Random string (9 byte = 72bit = 12 characters in websafe base64).
       function randomStr() {
         return btoa(String.fromCharCode(
-          ...crypto.getRandomValues(new Uint8Array(18))))
+          ...crypto.getRandomValues(new Uint8Array(9))))
           .replace(/[+/]/g, x => ({ '+': '-', '/': '_' }[x]))
       }
 

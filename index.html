@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-06-17T22:28:20+02:00
+Updated: 2025-06-23T01:30:10+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -28,18 +28,22 @@ extension still does not implement even basic functionality, so I can't really
 recommend that you download it (yet). However, if you really want to, you're
 welcome to try it out. :)
 
-| Function                       | File                                   |
-|--------------------------------|----------------------------------------|
-| Firefox manifest (version 3)   | <nobr>[`firefox/manifest.json`]</nobr> |
-| Popup menu                     | [`firefox/rewin.html`]                 |
-| Background script              | [`firefox/rewin.js`]                   |
-| Extension icon                 | [`firefox/rewin.svg`]                  |
-| Extension icon (when disabled) | <nobr>[`firefox/rewin-off.svg`]</nobr> |
+| Function                         | File                                         |
+|----------------------------------|----------------------------------------------|
+| Firefox manifest (version 3)     | [`firefox/manifest.json`]                    |
+| Menu icon: submenu               | [`firefox/popup-next.svg`]                   |
+| Menu icon, parent menu           | [`firefox/popup-prev.svg`]                   |
+| Background script                | <nobr>[`firefox/rewin-background.js`]</nobr> |
+| Extension button icon (disabled) | [`firefox/rewin-off.svg`]                    |
+| Popup menu page                  | [`firefox/rewin-popup.html`]                 |
+| Extension button icon (main)     | [`firefox/rewin.svg`]                        |
 
 [`firefox/manifest.json`]: firefox/manifest.json
-[`firefox/rewin.html`]: firefox/rewin.html
-[`firefox/rewin.js`]: firefox/rewin.js
+[`firefox/popup-next.svg`]: firefox/popup-next.svg
+[`firefox/popup-prev.svg`]: firefox/popup-prev.svg
+[`firefox/rewin-background.js`]: firefox/rewin-background.js
 [`firefox/rewin-off.svg`]: firefox/rewin-off.svg
+[`firefox/rewin-popup.html`]: firefox/rewin-popup.html
 [`firefox/rewin.svg`]: firefox/rewin.svg
 
 
@@ -76,159 +80,222 @@ welcome to try it out. :)
 
 ## Far Future
 
-* Populate [browser history menu]
+* Populate [the browser's own history menu][browser history menu]
 * Thumbs up/down
 * History exploration
 
 
 # Internal Data Structure
 
-## Tab State
+Persistent data is stored in `storage.local`, data that can be reconstructed on
+restart is stored as global variables in `rewin-background.js`.
 
-Each tab is stored in `storage.local` in the following format:
+The `storage.local` contains key/value data of three different types:
+[tabs](#tab-records), [windows](#window-records), and
+[favicons](#favicon-records). The key names for each of these consist of a
+single character indicating type, followed by a random string. Types are:
+
+* `f` for favicons (below called `REFAVID`)
+* `t` for tabs (`RETABID`)
+* `w` for windows (`REWINID`)
 
 ```
-tab<REWINTABID>: [
-  META,
-  [URL, TITLE, FAVICON, DATETIME],  // 1st history entry
-  [URL, TITLE, FAVICON, DATETIME],  // 2nd entry
+fM-5PcX-JwI0e   // REFAVID
+tv43V9nI9SjqZ   // RETABID
+whE_6oklAha-v   // REWINID
+```
+
+
+## Random Strings
+
+The random component of each Rewin ID is a 12 character string. (Like a Youtube
+ID, but with [one more character](https://youtu.be/gocwRvLhDf8?t=289).) This
+string encodes a random value using websafe base64, which contain 72 bits
+(9 bytes) of entropy. (Meaning that there are 4,722,366,482,869,645,213,696
+possible unique IDs.) To reach a 50% likelihood of collision, about 80.9
+billion stored entries are needed (creating one new entry every second, that
+would take *2,564 years* to reach). Nontheless, Rewin checks to avoid
+collisions when creating new IDs.
+
+
+## Favicon Records
+
+A *favicon record* (stored in `storage.local`) consists of a single chunk of
+binary data: A favicon image. (It is the simplest of the Rewin records).---Its
+`REFAVID` starts with `f` followed by a [random string](#random-strings) (e.g.
+`faH-SDe__6Jy0`).
+
+```
+'f<REFAVID>': <BINARY DATA>
+```
+
+Favicons are used (together with the URL and title of web pages) when showing
+history entries in Rewin's menus. Since they are shown in text-based menus,
+only the smallish 16×16 pixel size is ever used.
+
+(In the future, the storing of these icons may be optimized for size. Possible
+optimizations include: Throwing away unused data found in most favicons by
+discarding all non-16×16 pixel sizes. Converting the bitmap to PNG and optimize
+that---similar to what the command `optipng` does. Using bitmap-based checksum
+as a `REFAVID` value, rather than a random number, to avoid duplicate storing
+of favicons that look the same.)
+
+
+## Tab Records
+
+A *tab record* (stored in `storage.local`) consists of a list of: One *metadata
+entry* (`META`) related to the tab, plus zero or more *history entries* (in
+chronological order) associated with that tab.---It's `RETABID` starts with `t`
+followed by a [random string](#random-strings) (e.g. `tTPwPnlus64ND`).
+
+```
+'t<RETABID>': [
+  META,                             // metadata entry
+  [URL, TITLE, REFAVID, DATETIME],  // 1st history entry
+  [URL, TITLE, REFAVID, DATETIME],  // 2nd history entry
   ...                               // etc.
 ]
 ```
 
-The tab record contains the full history for that tab. `REWINTABID` is a random
-"collision-safe" 22 byte string.
-
 The first (zeroth) entry in the list (`META`) is an object containing metadata
 for the tab. Possible metadata properties are:
 
-* `closed` (`DATETIME`)---Tab is closed (should either be unset, or set to the
-  `DATETIME` when the tab was closed). NOTA BENE: When a window is closed, the
-  tabs in that window are *not* set to `closed`---this is by design (so that
-  opened tabs can be restored when window is restored).
+* `closed` (`DATETIME`)---Tab is closed. (Whenever present, it should be set to
+  the `DATETIME` when the tab was closed). NOTA BENE: When a window is closed,
+  the tabs in that window are *not* set to `closed`---this is by design (so
+  that opened tabs can be restored when window is restored).
 * `pos` (integer)---Current position in history. If unset, the last entry is
   the current entry. If `1` the first entry is the current history item (and
   all history is in the future). (In the future, with bifurcating history, this
   may be a list of integers when indicating a position in a bifurcated
   position.)
 
-Each history entry is an array containing:
+Each history entry is an array that contains:
 
 * `URL`---The full address of the loaded page (after possible redirects).
   Includes URL parameters and hash fragment.
 * `TITLE`---Page title (`document.title`) for the loaded page.
-* `FAVICON`---The favicon data for the page.
+* `REFAVID`---The ID of the favicon for the page.
 * `DATETIME`---Unix epoch time when page was loaded. (In the future, this might
   be replaced with a list of load times.)
 
 
 ### Mapping `tabId`
 
-Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
-following mapping table is used to convert: Browser `tabId` → Rewin `tabId`.
+The following mapping table is used to convert the browser's numerical `tabId`
+to the Rewin's alphanumeric `RETABID` (beginning with `'t'`) that is used for
+`storage.local`.
+
 These mapping values are only available for currently open tabs (as closed tabs
 do not have a browser `tabId`), they are stored in a variable in
-`background.js`, and are never saved to disk. On (browser or extension)
-restart, these mapping values are recalculated from stored data.
+`rewin-background.js`, and are never saved to disk. On (browser or extension)
+restart, and when previously closed windows are reopened, a new mapping is
+created from new browser `tabId` to the (unchanged) `RETABID`.
 
 ```
 let tabMap = {
-    TABID: REWINTABID,
+    TABID: RETABID,
     ...
 }
 ```
 
-Get current Rewin data for tab with browser `tabId`:
+To get the current data for a tab with browser `tabId`:
 
 ```
-browser.storage.local.get(tabMap[tabdowId])
+browser.storage.local.get(tabMap[tabId])
   .then(onGet, onErr)
 ```
 
 
 ### Tab Actions
 
-| When                 | Change                                    |
-|----------------------|-------------------------------------------|
-| Rescan windows       | Create & populate list in `storage.local` |
-| Navigate to new page | Add history entry to end of list          |
-| Navigate in history  | Metadata `pos` is updated                 |
-| Tab created          | Create empty list in `storage.local`      |
-| Tab closed           | Metadata `closed` is set to `true`        |
-| Tab restored         | Metadata `closed` is removed              |
+| When                    | Change                                 |
+|-------------------------|----------------------------------------|
+| Scan tab's history      | Create & populate tab record(s)        |
+| Navigate to new page    | Add one tab entry at end of tab record |
+| Navigate in history     | Update metadata `pos` of tab record    |
+| Tab created             | Create new empty tab record            |
+| Tab closed              | Set metadata `closed` to current time  |
+| Tab restored            | Remove metadata `closed`               |
 
 No other operations affect the tab values. **Nota bene:** Closing a window does
 not change any tab values, and closing a tab only updates the tab's metadata
 (it does not affect the window). However, if a tab is dragged from one window
-into another, that tab is removed from the original window (and inserted into
-the new one).
+into another, that tab *is removed* from the original window and inserted into
+the new one.
 
 The reason for closed tabs being kept in-place, is so that they can be restored
-them in the same position if need be. (Even with several thousand tabs in one
-window this shouldn't be a problem, and all likelihood that many tabs are
-unlikely to accumulate).
+them in the same position if need be. The handling of a great many tabs (in the
+thousands, if not tens of thousands) shouldn't be a problem for Javascript, and
+that number of tabs are unlikely to accumulate throughout a window's lifetime.
 
 
-## Window State
+## Window Records
 
-There are two lists of windows: Currently open windows, and windows that have
-been closed. These are stored in the following `storage.local` entries:
+A *window record* (stored in `storage.local`) contains a list of: One *metadata
+entry* (`META`) related to the window, plus references to one or more tab
+records (`RETABID`) for the tabs (both open and closed) associated with that
+window.---Its `REWINID` starts with `w` followed by a [random
+string](#random-strings) (e.g. `wBpzPFRs-8XtH`).
+
+All recorded windows (whether open or closed) has a window record:
 
 ```
-'open': [
-  [META, REWINTABID, REWINTABID, ...],
-  ...
-]
-'closed': [
-  [META, REWINTABID, REWINTABID, ...],
-  ...
+'w<REWINID>': [
+  META,           // metadata entry
+  RETABID,        // 1st tab id reference
+  RETABID,        // 2nd tab id reference
+  ...             // etc.
 ]
 ```
-
-In the future, the way windows are stored might change (if the above schema
-turns out to be too slow or impractical).
-
-The values `'open'` and `'closed'` are literal strings, each containing a
-list-of-lists, where the inner list each represent a window.
-
-Each window record contains a list of all the tabs (open *and* closed) for that
-window. `REWINWINID` is a random "collision-safe" 22 byte string.
 
 The first (zeroth) entry in the list (`META`) is an object containing metadata
 for the window. Possible metadata properties are:
 
-* `closed` (`DATETIME`)---Window is closed (should either be unset, or set to
+* `closed` (`DATETIME`)---Window is closed (unset for open windows, or set to
   the `DATETIME` when the tab was closed). NOTA BENE: When a window is closed,
   the tabs in that window are *not* set to `closed`---this is by design (so
   that opened tabs can be restored when window is restored).
-* `incognito` (Boolean)---Indicates an incognito window.
+* `incognito` (Boolean)---If set, indicate the given window was/is in incognito
+  mode.
 * `pos` (integer)---The currently selected tab.
 
-For the currently open windows, there's also an internal mapping between each
-from the browser `windowId` to the corresponding entry in `windowsOpen`.
+There are also two special records called `'open'` and `'closed'` (literal
+strings) which lists the `REWINID` numbers of the currently closed and
+currently open windows, respectively.
 
-Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
-browser `tabId` can be converted to Rewin `tabId`, using the following internal
-map. (This is a variable set in `background.js`, it is not stored on disk, but
-instead reconstructed when needed).
+```
+'open'  : [REWINID, REWINID, ...]
+'closed': [REWINID, REWINID, ...]
+```
+
+(In the future, the literal `'open'` and `'closed'` may be followed by a
+number, so that the first thousand [or whatever number] closed windows are
+listed under `'closed'`, and the next set of windows under `'closed1'`
+etc.---The idea being that the names be predictable so they may fetched without
+having to scan the entirety of `storage.local`.)
+
 
 ### Mapping `windowId`
 
-Rewin IDs that are 144 bit random strings (24 character web-safe Base64). The
-following mapping table is used to convert: Browser `windowId` → Rewin `winId`.
+The following mapping table is used to convert the browser's numerical
+`windowId` to the Rewin's alphanumeric `REWINID` (beginning with `'w'`) that is
+used for `storage.local`.
+
 These mapping values are only available for currently open windows (as closed
 windows do not have a browser `windowId`), they are stored in a variable in
-`background.js`, and are never saved to disk. On (browser or extension)
-restart, these mapping values are recalculated from stored data.
+`rewin-background.js`, and are never saved to disk. On (browser or extension)
+restart, and when previously closed tabs are reopened, a new mapping is
+created from new browser `windowId` to the (unchanged) `REWINID`.
 
 ```
 let winMap = {
-    WINDOWID: REWINWINID,
+    WINDOWID: REWINID,
     ...
 }
 ```
 
-Get current Rewin data for window with browser `windowId`:
+To get the current for a window with browser `windowId`:
 
 ```
 browser.storage.local.get(winMap[windowId])
@@ -238,14 +305,15 @@ browser.storage.local.get(winMap[windowId])
 
 ### Window Actions
 
-| When                      | Change                                    |
-|---------------------------|-------------------------------------------|
-| Rescan windows            | Create & populate list in `storage.local` |
-| Window created            | Added to `openWindows`                    |
-| Window closed             | Moved `openWindows` → `closedWindows`     |
-| Window restored           | Moved `closedWindows` → `openWindows`     |
-| Tab created               | Add tab to its window                     |
-| Tab moved between windows | Remove from window, add in other window   |
+| When                      | Change                                   |
+|---------------------------|------------------------------------------|
+| Scan window's history     | Create & populate window & tab record(s) |
+| Window created            | Create window tab, and add to `'open'`   |
+| Window closed             | Move window tab, `'open'` → `'closed'`   |
+| Window restored           | Move window tab, `'closed'` → `'open'`   |
+| Tab created               | Add tab ID to window record              |
+| Tab moved within window   | Change tab position in window record     |
+| Tab moved between windows | Remove from window, add in other window  |
 
 No other operations affect the window values. **Nota bene:** Closing a window
 does not change any tab values, and closing a tab only updates the tab's
@@ -376,8 +444,8 @@ In summary:
 [Browser Restart]: #browser-restart
 ## Browser Restart
 
-On browser restart, all existing windows and tabs need to be reassociated to
-their history state.
+On browser restart, all existing windows and tabs need to be re-associated with
+their Rewin history records.
 
 Here's a [Stackoverflow question](https://stackoverflow.com/a/14518800/351162)
 discussing how to do this in Chrome (but it is applicable to Firefox as well):
@@ -407,7 +475,7 @@ discussing how to do this in Chrome (but it is applicable to Firefox as well):
 
 ## Detecting History Navigation
 
-In order to maintain it's internal state of history, Rewin needs to be able to
+In order to maintain it's internal history records, Rewin needs to be able to
 distinguish when the user navigates by following a link, from when history is
 used to navigate.
 

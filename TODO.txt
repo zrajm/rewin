@@ -2,13 +2,13 @@
 
 * TODO Add README
 * Firefox plugin
-** [1/6] Milestone Version 0.1---Basic Functionality
-*** TODO Continuous saving of history
-*** TODO Implement history saving
-*** [0/2] Implement popup menu
-**** TODO Popup should show actual history
-**** TODO Popup should show 'Restore Tabs'
-**** TODO Popup should show 'Restore Windows'
+** [0/5] Milestone Version 0.1---Basic Functionality
+*** [0/3] Basic history recording (for current tab)
+**** TODO Update history records when user follows links
+     Use `onReferenceFragmentUpdated`, `onCommitted`, `onHistoryStateUpdated`
+     and events to listen for user navigation.
+**** TODO Show actual history data in popup menu
+**** TODO Handle back/forward navigation
 *** TODO 'Restore tab' function
 *** TODO Update Rewin internal state
     Rewin should look at presently existing tabs and windows, and if there are
@@ -26,6 +26,10 @@
 ** [0/1] Milestone Version 1.0---Browser Restart
 *** TODO Reassociate existing windows with internal history data on restart
     https://stackoverflow.com/a/14518800/351162
+** [0/3] Rewin light mode
+*** TODO Make browser extension icon look good
+*** TODO `popup-next.svg`
+*** TODO `popup-prev.svg`
 ** TODO Popup should allow for up/down arrow key navigation
    + → = open (selected) submenu (same as enter or space)
    + ← = go back one submenu
@@ -49,7 +53,6 @@
    + Default: ~2 GB per extension.
    + With "unlimitedStorage" there's no strict cap, but limited by user disk
      space and global Firefox quotas (typically up to 10% of disk or 10 GB).
-** TODO Make sure icon looks good light mode (non-dark mode)
 ** TODO Verify that creating new tab updates state correctly
 ** TODO Verify that creating new window updates state correctly
 ** TODO Handle history for private window separately
@@ -106,7 +109,7 @@
 *** TODO Make history searchable
     What would this entail? Should only history be searchable? (If so, it might
     need to be added to the Rewin internal state.)
-* [3/3] FINISHED
+* [4/4] FINISHED
 ** DONE Write data structure section
    CLOSED: [2025-06-14 Sat 03:05]
 ** DONE Add license files
@@ -114,4 +117,6 @@
 ** DONE Designed a popup menu
    CLOSED: [2025-06-14 Sat 11:37]
    Doesn't really have any logic (yet).
+** DONE Added submenus to popup menu
+   CLOSED: [2025-06-17 Tue 21:24]
 * [eof]
