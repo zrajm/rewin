@@ -17,6 +17,34 @@ importFiles(
 
 /******************************************************************************/
 
+{ // Scroll-to-top button (shown below fold).
+  const [btn] = $(`<a href=#><svg width="24" height="24">
+    <path fill="none" stroke="#fff" stroke-linecap="round"
+      stroke-linejoin="round" stroke-width="2" d="m18 15-6-6-6 6"/></svg></a>`
+  ).css({
+    position: 'fixed',
+    bottom: '-60px',
+    right: '20px',
+    width: '48px',
+    height: '48px',
+    background: '#444', opacity: '.7',
+    borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'bottom .25s ease, box-shadow .25s ease-in-out',
+    zIndex: '9999',
+  })
+  const [fold] = $('<div>').css({
+    position: 'absolute',
+    inset: '0 0 -25% 0',  // 1st screenful + 25% extra downwards
+    zIndex: '-9999',
+    pointerEvents: 'none',
+  })
+  $(document.body).append(fold, btn)
+  new IntersectionObserver(([fold]) => {
+    btn.style.bottom = fold.isIntersecting ? '-60px' : '20px'
+  }).observe(fold)
+}
+
 function pageMain() {
   window.$ = $                                 // for use in browser console
 

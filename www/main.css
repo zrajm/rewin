@@ -22,6 +22,7 @@ html {
   --pagefg: #000;
   --pagebg: #fff;
   --codebg: #eee;
+  scroll-behavior: smooth;
   /* CSS-only darkmode. */
   transition: background-color .1s ease-in, color .1s ease-in;
   @media (prefers-color-scheme: light) { /* lightmode, but darkmode checked */
@@ -126,6 +127,7 @@ a {
   margin:  0 -.25rem -.125rem;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+  transition: box-shadow .2s ease-in-out, background-color .1s ease-in-out;
 }
 a.img { display: inline-block }
 a.img, [id] { position: relative }
