@@ -146,10 +146,13 @@ a.img:hover:before, a:not(.img):hover {
   background: #88f1;
 }
 :target:before {
-  top: 0rem; bottom: -.125rem;
+  inset: -1rem;
   box-shadow: 0 0 .75rem #fb4b inset, 0 0 1.5rem #fb4b inset;
   background: #fb44;
   z-index: -1;
+  pointer-events: none;
+  opacity: .5;
+  border-radius: .25rem;
 }
 td, th { padding: 0 .25em }
 td, th {
@@ -242,6 +245,7 @@ hr {
     transparent   calc(50% + (var(--break) / 2)),
     var(--linefg) calc(50% + (var(--break) / 2)),
     var(--linefg));
+  color: var(--linefg);
   &:before {
     display: block;
     text-align: center;

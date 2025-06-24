@@ -77,7 +77,8 @@ function pageMain() {
   $('head').append(htmlMeta(meta))             // get & add metadata to <head>
 
   // Replace <textarea> with page content.
-  textarea.outerHTML = htmlTitle(meta) + htmlContent + htmlFooter(meta)
+  textarea.outerHTML = '<main>' + htmlTitle(meta) + htmlContent + '</main>'
+    + htmlFooter(meta)
 
   // Make quotes curly in all text elements in DOM.
   modifyTextNodes(node => node.data = quotecurl(node.data))
@@ -86,6 +87,7 @@ function pageMain() {
   $('a[href]:not([href^="#"],[href^="javascript:"])').attr({ target: '_blank' })
 
   insertOptionalBreakAfterSlash()
+  wrapChapters()
 
   // For table cells which only contains a link, copy HREF to table cell.
   $(':is(td,th):has(a[href])').forEach(td => {
@@ -156,6 +158,26 @@ function insertOptionalBreakAfterSlash(e = document.body) {
   })
 }
 
+// Wrap chapters in <div>s, & move `id` attr from the <h#> to the wrapper.
+function wrapChapters(selector = 'h6,h5,h4,h3,h2,h1') {
+  const [headTag, ...headTags] = selector.split(',')
+  // Return tags from <tag> up to (but excluding) 1st tag matching <selector>.
+  function chapterContent(tag, selector, tags = [tag]) {
+    return ((tag = tag.nextSibling) && tag.nodeType !== 9
+            && !(tag.nodeType === 1 && tag.matches(selector)))
+      ? chapterContent(tag, selector, tags.concat(tag)) : tags
+  }
+  // For each tag, wrap it and following text content in <div>.
+  $(`${headTag}[id]`).forEach(heading => {
+    const { id } = heading; heading.removeAttribute('id')
+    heading = heading.closest('hgroup') ?? heading
+    const [wrapper] = $('<div>').attr({ id })
+    heading.before(wrapper)
+    $(wrapper).append(...chapterContent(heading, selector))
+  })
+  if (headTags.length) { wrapChapters(headTags.join(',')) }
+}
+
 // Completely flatten all args, and join them using the first arg as a
 // separator.
 function flatjoin(sep, ...x) {
@@ -191,7 +213,7 @@ function htmlTitle({title, author, created, updated, lang, titleId}) {
   return flatjoin('\n', [
     '<hgroup>',
     tmpl(`<h1${tmpl(' id="%"', quot(titleId))}>%</h1>`, title),
-    tmpl('<h2>%</h2>', [' ', [
+    tmpl('<p>%</p>', [' ', [
       tmpl('By %', author),
       tmpl('(<time>%</time>)', ['–', textDate(created, lang), textDate(updated, lang)])
     ]]),
