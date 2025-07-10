@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-07-10T17:43:51+02:00
+Updated: 2025-07-10T17:55:22+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -143,10 +143,11 @@ of favicons that look the same.)
 
 ## Tab Records
 
-A *tab record* (stored in `storage.local`) consists of a list of: One *metadata
-entry* (`META`) related to the tab, plus zero or more *history entries* (in
-chronological order) associated with that tab.---It's `RETABID` starts with `t`
-followed by a [random string](#random-strings) (e.g. `tTPwPnlus64ND`).
+A *tab record* (stored in `storage.local`) contains a list consisting of: One
+*metadata entry* (`META`) related to the tab, plus zero or more *history
+entries* (in chronological order) associated with that tab.---It's `RETABID`
+starts with `t` followed by a [random string](#random-strings) (e.g.
+`tTPwPnlus64ND`). See also: [Tab Actions](#tab-actions).
 
 ```
 't<RETABID>': [
@@ -207,36 +208,14 @@ browser.storage.local.get(tabMap[tabId])
 ```
 
 
-### Tab Actions
-
-| When                    | Change                                 |
-|-------------------------|----------------------------------------|
-| Scan tab's history      | Create & populate tab record(s)        |
-| Navigate to new page    | Add one tab entry at end of tab record |
-| Navigate in history     | Update metadata `pos` of tab record    |
-| Tab created             | Create new empty tab record            |
-| Tab closed              | Set metadata `closed` to current time  |
-| Tab restored            | Remove metadata `closed`               |
-
-No other operations affect the tab values. **Nota bene:** Closing a window does
-not change any tab values, and closing a tab only updates the tab's metadata
-(it does not affect the window). However, if a tab is dragged from one window
-into another, that tab *is removed* from the original window and inserted into
-the new one.
-
-The reason for closed tabs being kept in-place, is so that they can be restored
-them in the same position if need be. The handling of a great many tabs (in the
-thousands, if not tens of thousands) shouldn't be a problem for Javascript, and
-that number of tabs are unlikely to accumulate throughout a window's lifetime.
-
-
 ## Window Records
 
-A *window record* (stored in `storage.local`) contains a list of: One *metadata
-entry* (`META`) related to the window, plus references to one or more tab
-records (`RETABID`) for the tabs (both open and closed) associated with that
-window.---Its `REWINID` starts with `w` followed by a [random
-string](#random-strings) (e.g. `wBpzPFRs-8XtH`).
+A *window record* (stored in `storage.local`) contains a list consisting of:
+One *metadata entry* (`META`) related to the window, plus references to one or
+more tab records (`RETABID`) for the tabs (both open and closed) associated
+with that window.---Its `REWINID` starts with `w` followed by a [random
+string](#random-strings) (e.g. `wBpzPFRs-8XtH`). See also: [Window
+Actions](#window-actions).
 
 All recorded windows (whether open or closed) has a window record:
 
@@ -303,24 +282,6 @@ browser.storage.local.get(winMap[windowId])
 ```
 
 
-### Window Actions
-
-| When                      | Change                                   |
-|---------------------------|------------------------------------------|
-| Scan window's history     | Create & populate window & tab record(s) |
-| Window created            | Create window tab, and add to `'open'`   |
-| Window closed             | Move window tab, `'open'` → `'closed'`   |
-| Window restored           | Move window tab, `'closed'` → `'open'`   |
-| Tab created               | Add tab ID to window record              |
-| Tab moved within window   | Change tab position in window record     |
-| Tab moved between windows | Remove from window, add in other window  |
-
-No other operations affect the window values. **Nota bene:** Closing a window
-does not change any tab values, and closing a tab only updates the tab's
-metadata (it does not affect the window). However, if a tab is dragged from one
-window into another, it's removed from the original window.
-
-
 ## Fake History Entries
 
 The current approach to restoring history entries involves faking them. This is
@@ -355,6 +316,78 @@ let histMap = {
 
 In the future, history *might* be populated with `tabs.update()`, in which case
 these fake history entries will not be needed.
+
+
+# Actions
+
+## Page Navigation
+
+* Follow link
+* On URL Fragment Update
+* On `.pushState()` and `.replaceState()`
+* Go back/forward in history
+* Open link in new tab
+* Open link in new window
+* Open link in private window
+* Open link in new container tab
+
+
+## Tab Actions
+
+| When                    | Change                                 |
+|-------------------------|----------------------------------------|
+| Scan tab's history      | Create & populate tab record(s)        |
+| Navigate to new page    | Add one tab entry at end of tab record |
+| Navigate in history     | Update metadata `pos` of tab record    |
+| Tab created             | Create new empty tab record            |
+| Tab closed              | Set metadata `closed` to current time  |
+| Tab restored            | Remove metadata `closed`               |
+
+* Scan tab history
+* New tab
+* Close tab
+* Restore tab
+* Duplicate tab
+* Opened from
+* Dragged into new place within window
+* Dragged into a new window
+* Dragged into an already existing window
+
+No other operations affect the tab values. **Nota bene:** Closing a window does
+not change any tab values, and closing a tab only updates the tab's metadata
+(it does not affect the window). However, if a tab is dragged from one window
+into another, that tab *is removed* from the original window and inserted into
+the new one.
+
+The reason for closed tabs being kept in-place, is so that they can be restored
+them in the same position if need be. The handling of a great many tabs (in the
+thousands, if not tens of thousands) shouldn't be a problem for Javascript, and
+that number of tabs are unlikely to accumulate throughout a window's lifetime.
+
+
+## Window Actions
+
+| When                      | Change                                   |
+|---------------------------|------------------------------------------|
+| Scan window's history     | Create & populate window & tab record(s) |
+| Window created            | Create window tab, and add to `'open'`   |
+| Window closed             | Move window tab, `'open'` → `'closed'`   |
+| Window restored           | Move window tab, `'closed'` → `'open'`   |
+| Tab created               | Add tab ID to window record              |
+| Tab moved within window   | Change tab position in window record     |
+| Tab moved between windows | Remove from window, add in other window  |
+
+* Scan window history
+* New window---With one new tab
+* New window---Tabs dragged from other window
+* Close window
+* Restore window
+* New private window
+
+No other operations affect the window values. **Nota bene:** Closing a window
+does not change any tab values, and closing a tab only updates the tab's
+metadata (it does not affect the window). However, if a tab is dragged from one
+window into another, it's removed from the original window.
 
 
 [Continuous History Saving]: #continuous-history-saving
