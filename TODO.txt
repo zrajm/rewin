@@ -3,16 +3,19 @@
 * TODO Add README
 * Firefox plugin
 ** [0/2] Milestone Version 0.1---Basic Functionality
-*** [2/4] Handle internal state
+*** [3/5] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
      Update internal state for tabs as they are opened/closed/reopened.
 **** DONE Track state of windows
      CLOSED: [2025-07-17 Thu 06:20]
      Update internal state for windows as they are opened/closed/reopened.
-**** TODO Track tabs in windows
-     Track tabs in each window, and update `meta.pos` (the index of the
-     currently selected tab).
+**** DONE Track current tab for each window
+     CLOSED: [2025-07-17 Thu 07:54]
+     Update `meta.pos` (the index of the currently selected tab).
+**** TODO Track tab list
+     Add tabs as they're added to the window. Remove tabs that are dragged into
+     their own window.
 **** TODO Track navigation history
 *** [0/3] Basic history recording (for current tab)
 **** TODO Update history records when user follows links

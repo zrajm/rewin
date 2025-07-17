@@ -137,23 +137,29 @@ function onURLChange(details) {
 }
 
 const histIndex = {}
-function updateToolbarIcon() {
-  getCurrentTab().then(tab => {
-    const { id: tabId } = tab
-    getHistoryLength(tabId).then(histLen => {
-      histIndex[tabId] = histLen
-      browser.action.setIcon({ tabId, path: null })
-      browser.action.setTitle({ tabId, title: null })
-      // FIXME: Only set badge text if there's restored history!
-      browser.action.setBadgeText({ tabId, text: histLen ? `${histLen}` : null })
-      console.log('HISTINDEX', JSON.stringify(histIndex))
-    }).catch(err => {
-      histIndex[tabId] = null
-      browser.action.setIcon({ tabId, path: 'rewin-off.svg' })
-      browser.action.setTitle({ tabId, title: `DISABLED: ${err}` })
-      browser.action.setBadgeText({ tabId, text: null })
-    })
+async function updateToolbarIcon() {
+  const { id: tabId, windowId: winId } = await getCurrentTab()
+  getHistoryLength(tabId).then(histLen => {
+    histIndex[tabId] = histLen
+    browser.action.setIcon({ tabId, path: null })
+    browser.action.setTitle({ tabId, title: null })
+    // FIXME: Only set badge text if there's restored history!
+    browser.action.setBadgeText({ tabId, text: histLen ? `${histLen}` : null })
+    console.log('HISTINDEX', JSON.stringify(histIndex))
+  }).catch(err => {
+    histIndex[tabId] = null
+    browser.action.setIcon({ tabId, path: 'rewin-off.svg' })
+    browser.action.setTitle({ tabId, title: `DISABLED: ${err}` })
+    browser.action.setBadgeText({ tabId, text: null })
   })
+  // Update window's 'tab' property.
+  const rewinTabId = tabMap[tabId]    ??= await getRewinTabId(tabId)
+  const rewinWinId = winMap[winId]    ??= await getRewinWinId(winId)
+  let   [meta]     = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+  if (meta.tab != rewinTabId) {
+    meta.tab = rewinTabId
+    await saveRec(rewinWinId)
+  }
 }
 
 /*****************************************************************************/

@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-07-10T17:55:22+02:00
+Updated: 2025-07-17T07:54:39+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -237,7 +237,10 @@ for the window. Possible metadata properties are:
   that opened tabs can be restored when window is restored).
 * `incognito` (Boolean)---If set, indicate the given window was/is in incognito
   mode.
-* `pos` (integer)---The currently selected tab.
+* `tab` (`RETABID`)---The currently selected tab. This is not simply an index
+  value (because Rewin keeps closed tabs in the same data structure, it doesn't
+  match the browser's index, and dragging tabs out of the window would require
+  an index value to be updated).
 
 There are also two special records called `'open'` and `'closed'` (literal
 strings) which lists the `REWINID` numbers of the currently closed and
