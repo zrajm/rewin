@@ -110,10 +110,10 @@ async function mapWindow({ id: winId }) {
   delete meta.closed // mark win as non-closed
   await saveRec(rewinWinId)
 }
-async function unmapWindow(windowId) {
-  const rewinWinId = winMap[windowId]
-  if (!rewinWinId) { throw `Window unknown to Rewin (windowId: ${windowId})` }
-  console.log(`WINDOW CLOSED ${windowId}/${rewinWinId}`)
+async function unmapWindow(winId) {
+  const rewinWinId = winMap[winId]
+  if (!rewinWinId) { throw `Window unknown to Rewin (winId: ${winId})` }
+  console.log(`WINDOW CLOSED ${winId}/${rewinWinId}`)
 
   // Make sure win record is initiated (load, or set to empty).
   let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
@@ -124,7 +124,7 @@ async function unmapWindow(windowId) {
   // Save & remove from RAM.
   await saveRec(rewinWinId)
   delete recs[rewinWinId]
-  delete winMap[windowId]
+  delete winMap[winId]
 }
 
 function onURLChange(details) {
