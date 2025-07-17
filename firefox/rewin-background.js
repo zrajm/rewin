@@ -29,6 +29,12 @@ function getRewinTabId(tabId) {
       browser.sessions.setTabValue(tabId, 'rewinId', rewinId),
       rewinId)))
 }
+function getRewinWindowId(windowId) {
+  return browser.sessions.getWindowValue(windowId, 'rewinId').then(rewinId =>
+    rewinId ?? createId('w').then(rewinId => (
+      browser.sessions.setWindowValue(windowId, 'rewinId', rewinId),
+      rewinId)))
+}
 
 // All cached data, indexed by rewinId (initial letter of id determines type of
 // data). Records are flushed (but kept in storage) for closed tabs/windows.
@@ -67,7 +73,7 @@ function getHistoryLength(tabId) {
 let tabMap = {}
 async function mapTab({ id: tabId }) {
   const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
-  console.log('OPENED', tabId, rewinTabId)
+  console.log('TAB OPENED', tabId, rewinTabId)
 
   // Make sure tab record is initiated (load, or set to empty).
   let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
@@ -78,7 +84,7 @@ async function mapTab({ id: tabId }) {
 async function unmapTab(tabId, { windowId, isWindowClosing }) {
   const rewinTabId = tabMap[tabId]
   if (!rewinTabId) { throw `Tab unknown to Rewin (tabId: ${tabId})` }
-  console.log('CLOSED', tabId, rewinTabId)
+  console.log('TAB CLOSED', tabId, rewinTabId)
 
   // Make sure tab record is initiated (load, or set to empty).
   let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
@@ -90,6 +96,35 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
   await saveRec(rewinTabId)
   delete recs[rewinTabId]
   delete tabMap[tabId]
+}
+
+// Add window to <recs>, also save to to storage.
+let winMap = {}
+async function mapWindow({ id: winId }) {
+  const rewinWinId = winMap[winId] = await getRewinWindowId(winId)
+  console.log('WINDOW OPENED', winId, rewinWinId)
+
+  // Make sure window record is initiated (load, or set to empty).
+  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+
+  delete meta.closed // mark win as non-closed
+  await saveRec(rewinWinId)
+}
+async function unmapWindow(windowId) {
+  const rewinWinId = winMap[windowId]
+  if (!rewinWinId) { throw `Window unknown to Rewin (windowId: ${windowId})` }
+  console.log('WINDOW CLOSED', windowId, rewinWinId)
+
+  // Make sure win record is initiated (load, or set to empty).
+  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+
+  // Set window to 'closed'.
+  meta.closed = Date.now()
+
+  // Save & remove from RAM.
+  await saveRec(rewinWinId)
+  delete recs[rewinWinId]
+  delete winMap[windowId]
 }
 
 //
@@ -129,9 +164,11 @@ function logErr(func) {
   return (...args) => func(...args).catch(err => console.error(err))
 }
 
-// Tab open/close.
+// Tab/window open/close.
 browser.tabs.onCreated.addListener(logErr(mapTab))
 browser.tabs.onRemoved.addListener(logErr(unmapTab))
+browser.windows.onCreated.addListener(logErr(mapWindow))
+browser.windows.onRemoved.addListener(logErr(unmapWindow))
 
 // User switches between tabs.
 browser.tabs.onActivated.addListener(updateToolbarIcon)
