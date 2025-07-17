@@ -29,7 +29,7 @@ function getRewinTabId(tabId) {
       browser.sessions.setTabValue(tabId, 'rewinId', rewinId),
       rewinId)))
 }
-function getRewinWindowId(windowId) {
+function getRewinWinId(windowId) {
   return browser.sessions.getWindowValue(windowId, 'rewinId').then(rewinId =>
     rewinId ?? createId('w').then(rewinId => (
       browser.sessions.setWindowValue(windowId, 'rewinId', rewinId),
@@ -101,7 +101,7 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
 // Add window to <recs>, also save to to storage.
 let winMap = {}
 async function mapWindow({ id: winId }) {
-  const rewinWinId = winMap[winId] = await getRewinWindowId(winId)
+  const rewinWinId = winMap[winId] = await getRewinWinId(winId)
   console.log('WINDOW OPENED', winId, rewinWinId)
 
   // Make sure window record is initiated (load, or set to empty).
@@ -127,13 +127,11 @@ async function unmapWindow(windowId) {
   delete winMap[windowId]
 }
 
-//
 function onURLChange(details) {
   if (details.frameId !== 0) { return } // skip iframes
   const { rewin } = history.state
   if (rewin) {  // previously visited
     // update state
-
   }
   history.replace({ rewin: history.length, ...history.state })
 }
@@ -171,8 +169,8 @@ browser.windows.onCreated.addListener(logErr(mapWindow))
 browser.windows.onRemoved.addListener(logErr(unmapWindow))
 
 // User switches between tabs.
-browser.tabs.onActivated.addListener(updateToolbarIcon)
-browser.windows.onFocusChanged.addListener(updateToolbarIcon)
+browser.tabs.onActivated.addListener(logErr(updateToolbarIcon))
+browser.windows.onFocusChanged.addListener(logErr(updateToolbarIcon))
 
 // URL changes/navigation (including Back & Forward).
 browser.webNavigation.onCommitted.addListener(onURLChange)
