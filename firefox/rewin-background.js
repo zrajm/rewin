@@ -6,12 +6,21 @@
 /**********************/
 
 function runInTab(tabId, func, ...args) {
-  browser.scripting.executeScript({ target: { tabId }, func, args })
+  return browser.scripting.executeScript({ target: { tabId }, func, args })
 }
 
 function getCurrentTab() {
   return browser.tabs.query({ currentWindow: true, active: true })
     .then(([tab]) => tab)
+}
+
+function getHistoryLength(tabId) {
+  return runInTab(tabId, () => history.length).then(([reply]) => {
+    const { result: i, error } = reply ?? {}
+    if (error) { throw error }
+    if (!i) { throw Error(`Bad history length (tab ID ${tabId}): ${i}`) }
+    return i
+  })
 }
 
 /***********************/
@@ -30,22 +39,15 @@ function onURLChange(details) {
 }
 
 const histIndex = {}
-function onTabFocusChange() {
+function updateToolbarIcon() {
   getCurrentTab().then(tab => {
-    console.log('TABDETAILS:', tab)
     const { id: tabId } = tab
-    browser.scripting.executeScript({
-      target: { tabId },
-      func: () => history.length,
-    }).then(([reply]) => {
-      const { result, error } = reply ?? {}
-      histIndex[tabId] = error ? null : result
-      if (error) { throw error }
-      if (!result) { throw (`Bad history length: ${result}`) }
+    getHistoryLength(tabId).then(histLen => {
+      histIndex[tabId] = histLen
       browser.action.setIcon({ tabId, path: null })
       browser.action.setTitle({ tabId, title: null })
       // FIXME: Only set badge text if there's restored history!
-      browser.action.setBadgeText({ tabId, text: result ? `${result}` : null })
+      browser.action.setBadgeText({ tabId, text: histLen ? `${histLen}` : null })
       console.log('HISTINDEX', JSON.stringify(histIndex))
     }).catch(err => {
       histIndex[tabId] = null
@@ -59,8 +61,8 @@ function onTabFocusChange() {
 /*****************************************************************************/
 
 // User switches between tabs.
-browser.tabs.onActivated.addListener(onTabFocusChange)
-browser.windows.onFocusChanged.addListener(onTabFocusChange)
+browser.tabs.onActivated.addListener(updateToolbarIcon)
+browser.windows.onFocusChanged.addListener(updateToolbarIcon)
 
 // URL changes/navigation (including Back & Forward).
 browser.webNavigation.onCommitted.addListener(onURLChange)
