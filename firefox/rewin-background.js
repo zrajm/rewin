@@ -73,7 +73,7 @@ function getHistoryLength(tabId) {
 let tabMap = {}
 async function mapTab({ id: tabId }) {
   const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
-  console.log('TAB OPENED', tabId, rewinTabId)
+  console.log(`TAB OPENED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
   let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
@@ -84,7 +84,7 @@ async function mapTab({ id: tabId }) {
 async function unmapTab(tabId, { windowId, isWindowClosing }) {
   const rewinTabId = tabMap[tabId]
   if (!rewinTabId) { throw `Tab unknown to Rewin (tabId: ${tabId})` }
-  console.log('TAB CLOSED', tabId, rewinTabId)
+  console.log(`TAB CLOSED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
   let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
@@ -102,7 +102,7 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
 let winMap = {}
 async function mapWindow({ id: winId }) {
   const rewinWinId = winMap[winId] = await getRewinWinId(winId)
-  console.log('WINDOW OPENED', winId, rewinWinId)
+  console.log(`WINDOW OPENED ${winId}/${rewinWinId}`)
 
   // Make sure window record is initiated (load, or set to empty).
   let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
@@ -113,7 +113,7 @@ async function mapWindow({ id: winId }) {
 async function unmapWindow(windowId) {
   const rewinWinId = winMap[windowId]
   if (!rewinWinId) { throw `Window unknown to Rewin (windowId: ${windowId})` }
-  console.log('WINDOW CLOSED', windowId, rewinWinId)
+  console.log(`WINDOW CLOSED ${windowId}/${rewinWinId}`)
 
   // Make sure win record is initiated (load, or set to empty).
   let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
@@ -160,6 +160,7 @@ async function updateToolbarIcon() {
     meta.tab = rewinTabId
     await saveRec(rewinWinId)
   }
+  console.log(`TAB CHANGED ${tabId}/${rewinTabId} (window ${winId}/${rewinWinId})`)
 }
 
 /*****************************************************************************/
