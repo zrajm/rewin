@@ -13,6 +13,16 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
+**** [1/3] Scan tabs/windows
+***** DONE Basic listing of all tabs & windows
+      CLOSED: [2025-07-19 Sat 11:21]
+***** TODO Include rewinWinId & rewinTabId in list
+***** TODO Don't use await naïvely in scanTabs()
+      The loop that adds rewinWinId & rewinTabId to the list uses await in a
+      very clumsy manner. Rather than solving everything sequentially, and
+      using blocking awaits at all points, use `.then()` and parallelize as
+      much as possible. (But still output the information, only after the data
+      has been fully annotated with the Rewin ID info.)
 **** TODO Track tab list
      Add tabs as they're added to the window. Remove tabs that are dragged into
      their own window.
@@ -82,9 +92,21 @@
 *** TODO Make browser extension icon look good
 *** TODO `popup-next.svg`
 *** TODO `popup-prev.svg`
-** TODO On Firefox restart, restore fullscreen and minified windows
-   Firefox seem to totally forget if windows where fullscreen or minified when
-   restoring them. :(
+** TODO Track & restore: alwaysOnTop, incognito, state and sessionId
+   On Firefox restart, restore fullscreen and minified windows Firefox seem to
+   totally forget if windows where fullscreen or minified when restoring them.
+   :(
+
+   Also use?: lastAccessed, successorTabId, pinned, status, discarded(?)
+
+   The `browser.windows.getAll()` return function returns the following stuff
+   that we want to track/restore.
+
+   state = normal, minimized, maximized, fullscreen, docked
+   (https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/WindowState)
+
+   sessionId -- for restoring recently closed tabs/windows
+   (https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sessions)
 ** TODO Popup should allow for up/down arrow key navigation
    + → = open (selected) submenu (same as enter or space)
    + ← = go back one submenu

@@ -67,27 +67,19 @@ function getHistoryLength(tabId) {
 
 // FIXME: Add rewinTabId and rewinWinId for each tab/window
 async function scanTabs() {
-  // state = normal, minimized, maximized, fullscreen, docked
-  // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/WindowState
-  //
-  // sessionId -- for restoring recently closed tabs/windows
-  // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sessions
   const windows = Object.fromEntries(
     (await browser.windows.getAll({ populate: true }))
       .filter(({ type }) => type === 'normal') // only 'normal' windows
       .map(({                                  // window
-        id: windowId, title, incognito, alwaysOnTop, state, sessionId, type, tabs,
+        id: windowId, title, type, tabs,
       }) => {
         let windowMeta = {
-          title, incognito,
-          // alwaysOnTop, state, sessionId,    // FIXME: put back when needed
+          title,
           // tabs: tabs.length,                // FIXME: remove
         }
         return [windowId, [
-          // FIXME: Also use?: lastAccessed, successorTabId,
-          // pinned, status, discarded(?)
           windowMeta, ...tabs.map(({           // tabs
-            id: tabId, windowId, url, title, favIconUrl, active, incognito,
+            id: tabId, windowId, url, title, favIconUrl, active,
           }, index) => {
             // FIXME: 'active' should use rewinTabId (not browser tabId)
             if (active) { windowMeta.active = index }
@@ -109,10 +101,6 @@ async function scanTabs() {
     }, 1))
   }
 }
-
-/***********************/
-/** Central Functions **/
-/***********************/
 
 // Add tab to <recs>, also save to to storage.
 let tabMap = {}
