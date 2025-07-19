@@ -24,15 +24,15 @@ function createId(prefix) {
 // from the tab itself (this value is restored if tab is reopened). If no
 // rewinId could be found, generate a new one.
 function getRewinTabId(tabId) {
-  return browser.sessions.getTabValue(tabId, 'rewinId').then(rewinId =>
+  return browser.sessions.getTabValue(+tabId, 'rewinId').then(rewinId =>
     rewinId ?? createId('t').then(rewinId => (
-      browser.sessions.setTabValue(tabId, 'rewinId', rewinId),
+      browser.sessions.setTabValue(+tabId, 'rewinId', rewinId),
       rewinId)))
 }
 function getRewinWinId(windowId) {
-  return browser.sessions.getWindowValue(windowId, 'rewinId').then(rewinId =>
+  return browser.sessions.getWindowValue(+windowId, 'rewinId').then(rewinId =>
     rewinId ?? createId('w').then(rewinId => (
-      browser.sessions.setWindowValue(windowId, 'rewinId', rewinId),
+      browser.sessions.setWindowValue(+windowId, 'rewinId', rewinId),
       rewinId)))
 }
 
@@ -65,9 +65,9 @@ function getHistoryLength(tabId) {
   })
 }
 
-// FIXME: Add rewinTabId and rewinWinId for each tab/window
+let winMap = {}, tabMap = {}
 async function scanTabs() {
-  const windows = Object.fromEntries(
+  let windows = Object.fromEntries(
     (await browser.windows.getAll({ populate: true }))
       .filter(({ type }) => type === 'normal') // only 'normal' windows
       .map(({                                  // window
@@ -83,7 +83,7 @@ async function scanTabs() {
           }, index) => {
             // FIXME: 'active' should use rewinTabId (not browser tabId)
             if (active) { windowMeta.active = index }
-            // FIXME: Each tab should be list of history entries
+            // FIXME: Each tab should be metadata + list of history entries
             return {
               // index,                        // FIXME: remove
               tabId, // pos,                   // tab metadata
@@ -91,6 +91,17 @@ async function scanTabs() {
             }
           })]]
       }))
+
+  // Insert Rewin IDs for windows/tabs (modifies 'windows'!)
+  // (Done seprately since async functions cannot be used in array functions.)
+  for (const [windowId, [meta, ...tabs]] of Object.entries(windows)) {
+    meta.rewinWinId = winMap[windowId] ??= await getRewinWinId(windowId)
+      // FIXME: Each tab should be metadata + list of history entries
+      for (let tab of tabs) {
+        const { tabId } = tab
+        tab.rewinTabId = tabMap[tabId] ??= await getRewinTabId(tabId)
+      }
+  }
 
   // Assign Rewin IDs to tabs and windows.
   for (const [windowId, window] of Object.entries(windows)) {
@@ -103,7 +114,6 @@ async function scanTabs() {
 }
 
 // Add tab to <recs>, also save to to storage.
-let tabMap = {}
 async function mapTab({ id: tabId }) {
   const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
   console.log(`TAB OPENED ${tabId}/${rewinTabId}`)
@@ -132,7 +142,6 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
 }
 
 // Add window to <recs>, also save to to storage.
-let winMap = {}
 async function mapWindow({ id: winId }) {
   const rewinWinId = winMap[winId] = await getRewinWinId(winId)
   console.log(`WINDOW OPENED ${winId}/${rewinWinId}`)
