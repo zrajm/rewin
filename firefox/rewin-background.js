@@ -101,6 +101,7 @@ async function scanTabs() {
         const { tabId } = tab
         tab.rewinTabId = tabMap[tabId] ??= await getRewinTabId(tabId)
       }
+    meta.active = tabs[meta.active].rewinTabId // change 'active' to Rewin ID
   }
 
   // Assign Rewin IDs to tabs and windows.

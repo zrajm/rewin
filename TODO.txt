@@ -13,12 +13,13 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [2/4] Scan tabs/windows
+**** [3/4] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
       CLOSED: [2025-07-20 Sun 00:35]
-***** TODO Set window metadata 'active' to rewinTabId
+***** DONE Set window metadata 'active' to rewinTabId
+      CLOSED: [2025-07-20 Sun 00:49]
 ***** TODO Don't use await naïvely in scanTabs()
       The loop that adds rewinWinId & rewinTabId to the list uses await in a
       very clumsy manner. Rather than solving everything sequentially, and
