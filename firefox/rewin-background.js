@@ -96,11 +96,11 @@ async function scanTabs() {
   // (Done seprately since async functions cannot be used in array functions.)
   for (const [windowId, [meta, ...tabs]] of Object.entries(windows)) {
     meta.rewinWinId = winMap[windowId] ??= await getRewinWinId(windowId)
-      // FIXME: Each tab should be metadata + list of history entries
-      for (let tab of tabs) {
-        const { tabId } = tab
-        tab.rewinTabId = tabMap[tabId] ??= await getRewinTabId(tabId)
-      }
+    // FIXME: Each tab should be metadata + list of history entries
+    for (let tab of tabs) {
+      const { tabId } = tab
+      tab.rewinTabId = tabMap[tabId] ??= await getRewinTabId(tabId)
+    }
     meta.active = tabs[meta.active].rewinTabId // change 'active' to Rewin ID
   }
 
