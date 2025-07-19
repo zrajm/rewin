@@ -65,6 +65,51 @@ function getHistoryLength(tabId) {
   })
 }
 
+// FIXME: Add rewinTabId and rewinWinId for each tab/window
+async function scanTabs() {
+  // state = normal, minimized, maximized, fullscreen, docked
+  // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/WindowState
+  //
+  // sessionId -- for restoring recently closed tabs/windows
+  // https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sessions
+  const windows = Object.fromEntries(
+    (await browser.windows.getAll({ populate: true }))
+      .filter(({ type }) => type === 'normal') // only 'normal' windows
+      .map(({                                  // window
+        id: windowId, title, incognito, alwaysOnTop, state, sessionId, type, tabs,
+      }) => {
+        let windowMeta = {
+          title, incognito,
+          // alwaysOnTop, state, sessionId,    // FIXME: put back when needed
+          // tabs: tabs.length,                // FIXME: remove
+        }
+        return [windowId, [
+          // FIXME: Also use?: lastAccessed, successorTabId,
+          // pinned, status, discarded(?)
+          windowMeta, ...tabs.map(({           // tabs
+            id: tabId, windowId, url, title, favIconUrl, active, incognito,
+          }, index) => {
+            // FIXME: 'active' should use rewinTabId (not browser tabId)
+            if (active) { windowMeta.active = index }
+            // FIXME: Each tab should be list of history entries
+            return {
+              // index,                        // FIXME: remove
+              tabId, // pos,                   // tab metadata
+              url, title, favIconUrl,          // FIXME: should be a history entry
+            }
+          })]]
+      }))
+
+  // Assign Rewin IDs to tabs and windows.
+  for (const [windowId, window] of Object.entries(windows)) {
+    console.log("WIN:",windowId, JSON.stringify(window, (key, value) => {
+      return (/^(favIconUrl|title|url)$/.test(key))
+        ? (value ?? '').slice(0, 30) + '...'
+        : value
+    }, 1))
+  }
+}
+
 /***********************/
 /** Central Functions **/
 /***********************/
