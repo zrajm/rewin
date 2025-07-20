@@ -229,4 +229,6 @@ browser.webNavigation.onReferenceFragmentUpdated.addListener(onURLChange)
 
 console.log('Rewin loaded')
 
+window.scanTabs = scanTabs // FIXME: Make available for debugging
+
 //[eof]

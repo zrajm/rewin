@@ -32,7 +32,9 @@
     "<all_urls>"
   ],
   "background": {
-    "scripts": ["rewin-background.js"]
+    "scripts": ["rewin-background.js"],
+    "type": "module",
+    "persistent": true
   },
   "action": {
     "default_icon": {
