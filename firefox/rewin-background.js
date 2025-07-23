@@ -65,56 +65,54 @@ function getHistoryLength(tabId) {
   })
 }
 
-let winMap = {}, tabMap = {}
+function errlog(msg) { console.error(msg) }
 async function scanTabs() {
-  let windows = Object.fromEntries(
-    (await browser.windows.getAll({ populate: true }))
-      .filter(({ type }) => type === 'normal') // only 'normal' windows
-      .map(({                                  // window
-        id: windowId, title, type, tabs,
-      }) => {
-        let windowMeta = {
-          title,
-          // tabs: tabs.length,                // FIXME: remove
-        }
-        return [windowId, [
-          windowMeta, ...tabs.map(({           // tabs
-            id: tabId, windowId, url, title, favIconUrl, active,
-          }, index) => {
-            // FIXME: 'active' should use rewinTabId (not browser tabId)
-            if (active) { windowMeta.active = index }
-            // FIXME: Each tab should be metadata + list of history entries
-            return {
-              // index,                        // FIXME: remove
-              tabId, // pos,                   // tab metadata
-              url, title, favIconUrl,          // FIXME: should be a history entry
-            }
-          })]]
-      }))
+  const windows = (await browser.windows.getAll({ populate: true }))
+    .filter(({ type }) => type === 'normal')   // skip non-'normal' windows
 
-  // Insert Rewin IDs for windows/tabs (modifies 'windows'!)
-  // (Done seprately since async functions cannot be used in array functions.)
-  for (const [windowId, [meta, ...tabs]] of Object.entries(windows)) {
-    meta.rewinWinId = winMap[windowId] ??= await getRewinWinId(windowId)
-    // FIXME: Each tab should be metadata + list of history entries
-    for (let tab of tabs) {
-      const { tabId } = tab
-      tab.rewinTabId = tabMap[tabId] ??= await getRewinTabId(tabId)
+  // Populate tab & windows maps with Rewin IDs.
+  let rewinTabMap = {}, rewinWinMap = {}
+  await Promise.all(windows.flatMap(({ id: windowId, tabs }) => [
+    getRewinWinId(windowId)
+      .then(rewinWinId => { rewinWinMap[windowId] = rewinWinId }, errlog),
+    ...tabs.map(({ id: tabId }) =>
+      getRewinTabId(tabId)
+        .then(rewinTabId => { rewinTabMap[tabId] = rewinTabId }, errlog))
+  ]))
+
+  let recs = {}
+  let faviconRecs = {}, faviconCount = 0
+  for (const {                                 // windows
+    id: windowId, tabs, incognito,
+  } of windows) {
+    // Create window record.
+    const rewinWinId = rewinWinMap[windowId]
+    const winMeta = {
+      active: tabs.findIndex(tab => tab.active),
+      incognito: incognito ? 1 : undefined,
     }
-    meta.active = tabs[meta.active].rewinTabId // change 'active' to Rewin ID
-  }
+    const rewinTabIds = tabs.map(({ id: tabId }) => rewinTabMap[tabId])
+    recs[rewinWinId] = [winMeta, rewinTabIds]
 
-  // Assign Rewin IDs to tabs and windows.
-  for (const [windowId, window] of Object.entries(windows)) {
-    console.log("WIN:",windowId, JSON.stringify(window, (key, value) => {
-      return (/^(favIconUrl|title|url)$/.test(key))
-        ? (value ?? '').slice(0, 30) + '...'
-        : value
-    }, 1))
+    // Create tab records.
+    for (const {                               // tabs
+      id: tabId, url, title, favIconUrl, lastAccessed,
+    } of tabs) {
+      const rewinTabId = rewinTabMap[tabId]
+      const tabMeta = { pos: 0 }
+      // FIXME: Change faviconCount into rewinFavId & put in <recs>
+      faviconRecs[favIconUrl] ??= faviconCount ++ // content => ID number
+      recs[rewinTabId] = [
+        tabMeta,
+        [url, title, faviconRecs[favIconUrl], lastAccessed]
+      ]
+    }
   }
+  return browser.storage.local.set(recs)
 }
 
 // Add tab to <recs>, also save to to storage.
+let tabMap = {}
 async function mapTab({ id: tabId }) {
   const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
   console.log(`TAB OPENED ${tabId}/${rewinTabId}`)
@@ -143,6 +141,7 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
 }
 
 // Add window to <recs>, also save to to storage.
+let winMap = {}
 async function mapWindow({ id: winId }) {
   const rewinWinId = winMap[winId] = await getRewinWinId(winId)
   console.log(`WINDOW OPENED ${winId}/${rewinWinId}`)

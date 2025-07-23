@@ -3,7 +3,7 @@
 * TODO Add README
 * Firefox plugin
 ** [0/2] Milestone Version 0.1---Basic Functionality
-*** [3/5] Handle internal state
+*** [3/6] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
      Update internal state for tabs as they are opened/closed/reopened.
@@ -13,13 +13,15 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [3/5] Scan tabs/windows
+**** [3/7] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
       CLOSED: [2025-07-20 Sun 00:35]
 ***** DONE Set window metadata 'active' to rewinTabId
       CLOSED: [2025-07-20 Sun 00:49]
+***** TODO scanTabs() should write favicon properly
+***** TODO scanTabs() should not write over existing data
 ***** TODO Set `recs` global var (tab/window/favicon records)
 ***** TODO Don't use await naïvely in scanTabs()
       Can we fit run the whole loop, with inventorying the tabs/windows AND
@@ -30,6 +32,17 @@
       using blocking awaits at all points, use `.then()` and parallelize as
       much as possible. (But still output the information, only after the data
       has been fully annotated with the Rewin ID info.)
+**** TODO Make background script non-persistent
+     MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
+     to work quite well on my machine?)
+     https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
+
+     Anyway, clearly we should get rid of this and only use storage.local.
+     https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts
+
+     This also means removing the use of `tabMap` and `winmap` variables
+     (replacing them with `browser.sessions.getTabValue` and
+     `browser.sessions.getWindowValue`).
 **** TODO Track tab list
      Add tabs as they're added to the window. Remove tabs that are dragged into
      their own window.
@@ -87,17 +100,6 @@
 ** [0/1] Milestone Version 1.0---Browser Restart
 *** TODO Reassociate existing windows with internal history data on restart
     https://stackoverflow.com/a/14518800/351162
-** TODO Make background script non-persistent
-   MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
-   to work quite well on my machine?)
-   https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
-
-   Anyway, clearly we should get rid of this and only use storage.local.
-   https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts
-
-   This also means removing the use of `tabMap` and `winmap` variables
-   (replacing them with `browser.sessions.getTabValue` and
-   `browser.sessions.getWindowValue`).
 ** TODO Reopening a tab should connect to old history
    What happens when a tab is reopened (with a complete history). Does it get
    the same window ID? (Even if it does, is this true on restart when all
