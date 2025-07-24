@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-07-19T11:22:04+02:00
+Updated: 2025-07-24T10:40:49+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -93,7 +93,8 @@ restart is stored as global variables in `rewin-background.js`.
 The `storage.local` contains key/value data of three different types:
 [tabs](#tab-records), [windows](#window-records), and
 [favicons](#favicon-records). The key names for each of these consist of a
-single character indicating type, followed by a random string. Types are:
+single character indicating type, followed by a [random
+string](#random-strings) . Types are:
 
 * `f` for favicons (below called `REFAVID`)
 * `t` for tabs (`RETABID`)
@@ -118,12 +119,29 @@ would take *2,564 years* to reach). Nontheless, Rewin checks to avoid
 collisions when creating new IDs.
 
 
+## Favicon Checksums
+
+The 'random strings' used for favicons IDs are slightly different from the
+other (wholly random) ID. For favicons, a SHA-1 checksum of the ([scaled &
+normalized](#favicon-records)) favicon data is used. Just like for the other ID
+numbers this checksum is written in websafe base64, and truncates the original
+SHA-1 checksum down to the first 12 characters.
+
+The use of checksums (instead of random values) allow for reuse. This means
+that, when multiple sites use the same favicon, then only one copy need to be
+stored by Rewin and all the sites will refer to the same stored favicon. This
+also means, however, that favicon IDs are not collision safe (though the
+likelihood of this causing a bug is astronomically small, [see
+above](#random-strings)).
+
+
 ## Favicon Records
 
-A *favicon record* (stored in `storage.local`) consists of a single chunk of
-binary data: A favicon image. (It is the simplest of the Rewin records).---Its
-`REFAVID` starts with `f` followed by a [random string](#random-strings) (e.g.
-`faH-SDe__6Jy0`).
+A *favicon record* (stored in `storage.local`) consists of a single base64
+encoded chunk of binary data: A favicon image. The stored favicons are scaled
+to 16×16 pixels, and stored in PNG format. (It is the simplest of the Rewin
+records).---Its `REFAVID` starts with `f` followed by a [SHA-1
+checksum](#favicon-checksums) (e.g. `faH-SDe__6Jy0`).
 
 ```
 'f<REFAVID>': <BINARY DATA>
@@ -133,12 +151,15 @@ Favicons are used (together with the URL and title of web pages) when showing
 history entries in Rewin's menus. Since they are shown in text-based menus,
 only the smallish 16×16 pixel size is ever used.
 
-(In the future, the storing of these icons may be optimized for size. Possible
-optimizations include: Throwing away unused data found in most favicons by
-discarding all non-16×16 pixel sizes. Converting the bitmap to PNG and optimize
-that---similar to what the command `optipng` does. Using bitmap-based checksum
-as a `REFAVID` value, rather than a random number, to avoid duplicate storing
-of favicons that look the same.)
+The storing of favicons is normalized & optimized for size, by scaling them
+down to 16×16 pixels.
+
+Also the favicon's ID value (`REFAVID`) are [checksum](#favicon-checksums)
+based (rather than [random IDs](#random-strings)). This allows web pages which
+use the same favicon to refer to a single stored favicon. (These checksums
+aren't collision safe however, so if two favicons happen to have the same
+checksum, some web page entries will display the wrong favicon in Rewin. Though
+in practice this is *very* unlikely to happen.)
 
 
 ## Tab Records
@@ -165,6 +186,13 @@ for the tab. Possible metadata properties are:
   the `DATETIME` when the tab was closed). NOTA BENE: When a window is closed,
   the tabs in that window are *not* set to `closed`---this is by design (so
   that opened tabs can be restored when window is restored).
+* `partial` (pseudo-Boolean)---Saved history is incomplete for this tab. When
+  Rewin is installed, only the currently loaded page (usually the last history
+  entry) is added to storage (since reading the history of each tab from the
+  browser is disruptive to the user), but when the user follows links these
+  will also be added to the tab's history. (This will be set to `1` if true,
+  and be absent otherwise.) **NOTE:** Going back/forward in history is not
+  reliable when `partial` is true.
 * `pos` (integer)---Current position in history. If unset, the last entry is
   the current entry. If `1` the first entry is the current history item (and
   all history is in the future). (In the future, with bifurcating history, this
@@ -235,8 +263,8 @@ for the window. Possible metadata properties are:
   the `DATETIME` when the tab was closed). NOTA BENE: When a window is closed,
   the tabs in that window are *not* set to `closed`---this is by design (so
   that opened tabs can be restored when window is restored).
-* `incognito` (Boolean)---If set, indicate the given window was/is in incognito
-  mode.
+* `incognito` (pseudo-Boolean)---If set, indicate the given window was/is in
+  incognito mode. (This will be set to `1` if true, and be absent otherwise.)
 * `active` (`RETABID`)---The currently active tab. This is not simply an index
   value (because Rewin keeps closed tabs in the same data structure, it doesn't
   match the browser's index, and dragging tabs out of the window would require

@@ -12,6 +12,27 @@ function randomStr() {
     .replace(/[+/]/g, x => ({ '+': '-', '/': '_' }[x]))
 }
 
+// Convert arbitrary image to 16×16 pixel PNG (preserving transparency).
+// (Returns promise, which resolves to base64 encoded string.)
+async function normalizeFavicon(imageDataUrl) {
+  if (!imageDataUrl || imageDataUrl === 'data:,') { return null }
+  return new Promise((resolve, reject) => {
+    let img = new Image()
+    img.onerror = () => {
+      reject(Error(`Cannot load image data: '${imageDataUrl}':`))
+    }
+    img.onload = () => {
+      let canvas = document.createElement('canvas')
+      canvas.width = 16; canvas.height = 16
+      let ctx = canvas.getContext('2d')
+      ctx.imageSmoothingEnabled = false        // good for small images
+      ctx.drawImage(img, 0, 0, 16, 16)         // scale image to 16×16 pixels
+      resolve(canvas.toDataURL('image/png').split(',')[1])
+    }
+    img.src = imageDataUrl
+  })
+}
+
 // Create a new unique Rewin ID (prefix: 't' = tab, 'w' = window).
 function createId(prefix) {
   const rewinId = `${prefix}${randomStr()}`
@@ -34,6 +55,15 @@ function getRewinWinId(windowId) {
     rewinId ?? createId('w').then(rewinId => (
       browser.sessions.setWindowValue(+windowId, 'rewinId', rewinId),
       rewinId)))
+}
+// Generate checksum based Rewin ID for a favicon. (Returns a promise.)
+async function getRewinFavId(str) {
+  const data = new TextEncoder().encode(str)
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const base64Hash = btoa(String.fromCharCode(...hashArray))
+  return 'f' + base64Hash.slice(0, 12)
+    .replace(/[+/]/g, x => ({ '+': '-', '/': '_' }[x]))
 }
 
 // All cached data, indexed by rewinId (initial letter of id determines type of
@@ -66,49 +96,64 @@ function getHistoryLength(tabId) {
 }
 
 function errlog(msg) { console.error(msg) }
+
+// Save all currently open window/tabs/favicons that aren't already saved
+// (never modifies/overwrites records that already exists).
 async function scanTabs() {
-  const windows = (await browser.windows.getAll({ populate: true }))
+  let favicons = {}
+  const promises = (await browser.windows.getAll({ populate: true }))
     .filter(({ type }) => type === 'normal')   // skip non-'normal' windows
-
-  // Populate tab & windows maps with Rewin IDs.
-  let rewinTabMap = {}, rewinWinMap = {}
-  await Promise.all(windows.flatMap(({ id: windowId, tabs }) => [
-    getRewinWinId(windowId)
-      .then(rewinWinId => { rewinWinMap[windowId] = rewinWinId }, errlog),
-    ...tabs.map(({ id: tabId }) =>
-      getRewinTabId(tabId)
-        .then(rewinTabId => { rewinTabMap[tabId] = rewinTabId }, errlog))
-  ]))
-
-  let recs = {}
-  let faviconRecs = {}, faviconCount = 0
-  for (const {                                 // windows
-    id: windowId, tabs, incognito,
-  } of windows) {
-    // Create window record.
-    const rewinWinId = rewinWinMap[windowId]
-    const winMeta = {
-      active: tabs.findIndex(tab => tab.active),
-      incognito: incognito ? 1 : undefined,
-    }
-    const rewinTabIds = tabs.map(({ id: tabId }) => rewinTabMap[tabId])
-    recs[rewinWinId] = [winMeta, rewinTabIds]
-
-    // Create tab records.
-    for (const {                               // tabs
-      id: tabId, url, title, favIconUrl, lastAccessed,
-    } of tabs) {
-      const rewinTabId = rewinTabMap[tabId]
-      const tabMeta = { pos: 0 }
-      // FIXME: Change faviconCount into rewinFavId & put in <recs>
-      faviconRecs[favIconUrl] ??= faviconCount ++ // content => ID number
-      recs[rewinTabId] = [
-        tabMeta,
-        [url, title, faviconRecs[favIconUrl], lastAccessed]
-      ]
-    }
-  }
-  return browser.storage.local.set(recs)
+    .flatMap(({                                // windows
+      id: windowId, tabs, incognito,
+    }) => {
+      // Create tab records.
+      let activeRewinTabId
+      return Promise.all(tabs.map(({             // tabs
+        id: tabId, url, title, favIconUrl, lastAccessed, active,
+      }) => {
+        return getRewinTabId(tabId).then(rewinTabId => {
+          if (active) { activeRewinTabId = rewinTabId }
+          return browser.storage.local.get(rewinTabId).then(
+            ({ [rewinTabId]: savedTabRecord }) => {
+              if (savedTabRecord) { return }   // already exists, skip
+              return normalizeFavicon(favIconUrl).catch(errlog).then(faviconData => {
+                return getRewinFavId(faviconData).then(rewinFavId => {
+                  favicons[rewinFavId] = faviconData
+                  // FIXME: Include full history
+                  const tabData = [url, title, rewinFavId, lastAccessed]
+                  // FIXME: Don't set 'partial' for tabs with no history
+                  const tabMeta = { pos: 0, partial: 1 }
+                  return [rewinTabId, [tabMeta, tabData]] // tab entry
+                })
+              })
+          }).catch(errlog)
+        })
+      })).then(tabEntries => {
+        // Create window record.
+        return getRewinWinId(windowId).then(rewinWinId => {
+          return browser.storage.local.get(rewinWinId).then(
+            ({ [rewinWinId]: savedWinRecord }) => {
+              if (savedWinRecord) {            // window already exists, skip
+                return tabEntries
+              }
+              const rewinTabIds = tabEntries.map(([rewinTabId]) => rewinTabId)
+              const winMeta = {
+                active: activeRewinTabId,
+                incognito: incognito ? 1 : undefined,
+              }
+              return [[rewinWinId, [winMeta, ...rewinTabIds]], ...tabEntries]
+          }).catch(errlog)
+        })
+      })
+    })
+  return Promise.all(promises).then(entries => {
+    // Each promise resolve into an entry for either a tab, a window, or a
+    // favicon record: [id => data].
+    return browser.storage.local.set({
+      ...Object.fromEntries(entries.flat()),
+      ...favicons,
+    }).catch(errlog)
+  })
 }
 
 // Add tab to <recs>, also save to to storage.

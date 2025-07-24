@@ -13,17 +13,17 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [3/7] Scan tabs/windows
+**** [5/8] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
       CLOSED: [2025-07-20 Sun 00:35]
 ***** DONE Set window metadata 'active' to rewinTabId
       CLOSED: [2025-07-20 Sun 00:49]
-***** TODO scanTabs() should write favicon properly
-***** TODO scanTabs() should not write over existing data
-***** TODO Set `recs` global var (tab/window/favicon records)
-***** TODO Don't use await naïvely in scanTabs()
+***** DONE scanTabs() should write favicon properly
+      CLOSED: [2025-07-24 Thu 10:40]
+***** DONE Don't use await naïvely in scanTabs()
+      CLOSED: [2025-07-24 Thu 10:40]
       Can we fit run the whole loop, with inventorying the tabs/windows AND
       saving Rewin ID's into single a loop?
 
@@ -32,6 +32,9 @@
       using blocking awaits at all points, use `.then()` and parallelize as
       much as possible. (But still output the information, only after the data
       has been fully annotated with the Rewin ID info.)
+***** TODO scanTabs() should not overwrite existing data
+***** TODO Set `recs` global var (tab/window/favicon records)
+***** TODO scanTabs() don't set 'partial' for tabs with no history
 **** TODO Make background script non-persistent
      MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
      to work quite well on my machine?)
@@ -70,6 +73,7 @@
     This function is basically sure to be triggered on install.
 
     browser.tabs.goBack(tabId).then(onGoBack, onError)
+*** TODO If a favicon already exists, don't overwrite
 ** [0/1] Milestone Version 0.2---Favicon support
 *** TODO History menu should now include favicons
     Favicons aren't loaded when a page load originally, so we need to listen
@@ -108,6 +112,37 @@
    `history.length` and one URL that we can see? (If there's only one matching
    history, we should be fine, right? Can we try `history.back()` and check if
    that matches the history too, if necessary?)
+** TODO Smaller format for storing favicons in storage.local?
+   Currently favicons are stored in PNG base64 format, but this in kinda
+   clunky. Storing binary in strings seems to be a bad idea (it's either
+   unreliable or unnecessarily big, since Javascript uses UTF-16 internally),
+   but Uint8Arrays (or similar) may be used?
+
+   function base64ToUint8Array(base64) {
+     return new Uint8Array([...atob(base64)].map(chr => chr.charCodeAt(0)))
+   }
+
+   NOTE: `localStorage`, and `storage.local` can store very different types of
+   data structures!
+** TODO scanTabs() read data from 'recently closed' tabs & windows
+** TODO scanTabs() favicon improvement
+   When normalizeFavicon() fails, it should return a default icon to be used.
+   (Maybe a PNG-ized version of the 'category-sitepermission.svg' icon found
+   here 'chrome://mozapps/skin/extensions/'?)
+
+   Other places where Firefox keeps icons are:
+   + chrome://mozapps/skin/extensions/
+   + chrome://global/skin/icons/
+** TODO scanTabs() better updating of windows
+   When scanning the currently open tabs, the windows should be updated in more
+   detail. If a tab is found in a window, that is not present in storage it
+   should be added, and if there's an open tab in storage that does not exist
+   in the window it should be a) removed if it has been moved to a different
+   window, or b) noted as 'closed' in storage.
+** TODO Should normalizeFavicon() treat SVG separately?
+   (This is only interesting insofar as it reduces file size in
+   `storage.local`.) For SVGs, maybe keep the original, rather than convert to
+   PNG? (Check size difference, keep most compact version.)
 ** [0/3] Rewin light mode
 *** TODO Make browser extension icon look good
 *** TODO `popup-next.svg`
