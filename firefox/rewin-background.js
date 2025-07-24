@@ -66,16 +66,20 @@ async function getRewinFavId(str) {
     .replace(/[+/]/g, x => ({ '+': '-', '/': '_' }[x]))
 }
 
-// All cached data, indexed by rewinId (initial letter of id determines type of
-// data). Records are flushed (but kept in storage) for closed tabs/windows.
-let recs = {}
-function saveRec(rewinId) {
-  return browser.storage.local.set({ [rewinId]: recs[rewinId] })
-}
-function loadRec(rewinId) {
-  return recs[rewinId] ?? browser.storage.local.get(rewinId)
-    .then(({ [rewinId]: value }) => value)
-}
+// Data is cached, indexed by rewinId (which have unique
+// 1st letter for each data type).
+const [saveRec, loadRec, killRec] = (() => {
+  let recs = {}
+  function saveRec(rewinId, data) {
+    return browser.storage.local.set({ [rewinId]: recs[rewinId] = data })
+  }
+  function loadRec(rewinId) {
+    return recs[rewinId] ?? browser.storage.local.get(rewinId)
+      .then(({ [rewinId]: value }) => value)
+  }
+  function killRec(rewinId) { delete recs[rewinId] }
+  return [saveRec, loadRec, killRec]
+})()
 
 function runInTab(tabId, func, ...args) {
   return browser.scripting.executeScript({ target: { tabId }, func, args })
@@ -164,17 +168,18 @@ async function scanTabs() {
   })
 }
 
-// Add tab to <recs>, also save to to storage.
+// Save tab to storage.
 let tabMap = {}
 async function mapTab({ id: tabId }) {
   const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
   console.log(`TAB OPENED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
-  let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
+  let rewinHist = await loadRec(rewinTabId) ?? [{ pos: 0 }]
+  let [meta] = rewinHist
 
   delete meta.closed // mark tab as non-closed
-  await saveRec(rewinTabId)
+  return saveRec(rewinTabId, rewinHist)
 }
 async function unmapTab(tabId, { windowId, isWindowClosing }) {
   const rewinTabId = tabMap[tabId]
@@ -182,7 +187,8 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
   console.log(`TAB CLOSED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
-  let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
+  let rewinHist = await loadRec(rewinTabId) ?? [{ pos: 0 }]
+  let [meta] = rewinHist
 
   // Set tab to 'closed' (unless part of window-close event).
   if (isWindowClosing) {
@@ -191,22 +197,23 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
     meta.closed = Date.now()
   }
   // Save & remove from RAM.
-  await saveRec(rewinTabId)
-  delete recs[rewinTabId]
   delete tabMap[tabId]
+  return saveRec(rewinTabId, rewinHist)
+    .then(() => killRec(rewinTabId))
 }
 
-// Add window to <recs>, also save to to storage.
+// Save window to storage.
 let winMap = {}
 async function mapWindow({ id: winId }) {
   const rewinWinId = winMap[winId] = await getRewinWinId(winId)
   console.log(`WINDOW OPENED ${winId}/${rewinWinId}`)
 
   // Make sure window record is initiated (load, or set to empty).
-  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+  let rewinTabIds = await loadRec(rewinWinId) ?? [{}]
+  let [meta] = rewinTabIds
 
   delete meta.closed // mark win as non-closed
-  await saveRec(rewinWinId)
+  return saveRec(rewinWinId, rewinTabIds)
 }
 async function unmapWindow(winId) {
   const rewinWinId = winMap[winId]
@@ -214,15 +221,16 @@ async function unmapWindow(winId) {
   console.log(`WINDOW CLOSED ${winId}/${rewinWinId}`)
 
   // Make sure win record is initiated (load, or set to empty).
-  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+  let rewinTabIds = await loadRec(rewinWinId) ?? [{}]
+  let [meta] = rewinTabIds
 
   // Set window to 'closed'.
   meta.closed = Date.now()
 
   // Save & remove from RAM.
-  await saveRec(rewinWinId)
-  delete recs[rewinWinId]
   delete winMap[winId]
+  return saveRec(rewinWinId, rewinTabIds)
+    .then(() => killRec(rewinWinId))
 }
 
 function onURLChange(details) {
@@ -240,6 +248,7 @@ async function updateToolbarIcon() {
     getRewinTabId(tabId).catch(errlog),
     getRewinWinId(winId).catch(errlog),
   ])
+  console.log(`TAB CHANGED ${tabId}/${rewinTabId} (window ${winId}/${rewinWinId})`)
   getHistoryLength(tabId).then(histLen => {
     browser.action.setIcon({ tabId, path: null })
     browser.action.setTitle({ tabId, title: null })
@@ -256,12 +265,13 @@ async function updateToolbarIcon() {
     browser.action.setBadgeText({ tabId, text: null })
   })
   // Update window's 'tab' property.
-  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+  let rewinTabIds = await loadRec(rewinWinId) ?? [{}]
+  let [meta] = rewinTabIds
+
   if (meta.tab != rewinTabId) {
     meta.tab = rewinTabId
-    await saveRec(rewinWinId)
+    return saveRec(rewinWinId, rewinTabIds)
   }
-  console.log(`TAB CHANGED ${tabId}/${rewinTabId} (window ${winId}/${rewinWinId})`)
 }
 
 /*****************************************************************************/

@@ -53,7 +53,8 @@
           { pos: 0 },
           histLength === 1 ? {} : { partial: 1 },
         )
-**** [0/3] Make background script non-persistent
+***** TODO scanTabs() should not overwrite existing data
+**** [1/4] Make background script non-persistent
      :RATIONALE:
      MDN says that `persistent: true` isn't allowed by manifest 3. (But it
      seems to work quite well on my machine?)
@@ -66,13 +67,13 @@
      (replacing them with `browser.sessions.getTabValue` and
      `browser.sessions.getWindowValue`).
      :END:
-***** TODO Removed global var `recs`
+***** DONE Remove global var `recs`
+      CLOSED: [2025-07-24 Thu 23:43]
 ***** TODO Remove global var `winMap`
       getRewinWinId() should use a local cache variable, though.
 ***** TODO Remove global var `tabMap`
       getRewinTabId() should use a local cache variable, though.
-***** TODO scanTabs() should not overwrite existing data
-***** TODO Set `recs` global var (tab/window/favicon records)
+***** TODO Remove persistence from manifest
 **** TODO Track tab list
      Add tabs as they're added to the window. Remove tabs that are dragged into
      their own window.
