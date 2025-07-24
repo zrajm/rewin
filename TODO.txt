@@ -2,7 +2,7 @@
 
 * TODO Add README
 * Firefox plugin
-** [0/2] Milestone Version 0.1---Basic Functionality
+** [0/4] Milestone Version 0.1---Basic Functionality
 *** [3/6] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
@@ -13,7 +13,7 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [5/8] Scan tabs/windows
+**** [6/9] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
@@ -32,9 +32,11 @@
       using blocking awaits at all points, use `.then()` and parallelize as
       much as possible. (But still output the information, only after the data
       has been fully annotated with the Rewin ID info.)
+***** DONE scanTabs() don't set 'partial' for tabs with no history
+      CLOSED: [2025-07-24 Thu 18:08]
 ***** TODO scanTabs() should not overwrite existing data
 ***** TODO Set `recs` global var (tab/window/favicon records)
-***** TODO scanTabs() don't set 'partial' for tabs with no history
+***** TODO Rewin badge should reflect 'partial' status for tab
 **** TODO Make background script non-persistent
      MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
      to work quite well on my machine?)
@@ -62,6 +64,22 @@
      history. In these cases, simply assume the page closest to (what is
      currently believed to be the current page) is the page navigated to by the
      user.
+*** TODO Always skip false values when writing values to storage.local
+    Currently, these values are set to `undefined`---as I thought that that
+    meant they wouldn't be stored, but that turned out to be wrong. Instead of
+    assigning, for example metadata, like this:
+
+      const tabMeta = {
+        pos: 0,
+        partial: histLength > 1 || undefined,
+      }
+
+    It should be written like this:
+
+      const tabMeta = Object.assign(
+        { pos: 0 },
+        histLength === 1 ? {} : { partial: 1 },
+      )
 *** TODO 'Restore tab' function
 *** TODO Update Rewin internal state
     Rewin should look at presently existing tabs and windows, and if there are
@@ -104,6 +122,39 @@
 ** [0/1] Milestone Version 1.0---Browser Restart
 *** TODO Reassociate existing windows with internal history data on restart
     https://stackoverflow.com/a/14518800/351162
+** TODO Switching to window on different desktop when focused
+   This is not implemented by default. This actually seem to be a lack in
+   Openbox, so we'd need a script that monitors when a window is focused, which
+   navigates to the corresponding desktop.
+
+   Might also be able to switch using the 'DEMANDS_ATTENTION' flag (which can
+   be set using `xdotool getactivewindow set_window --urgency 1`).
+
+   EWMH-compliant command line tools:
+   + `propwatch` (part of `xawtv-tools` Debian package)---
+   + `xprop`
+   + `xwininfo`
+   + `xdotool`
+   + `wmctrl`
+
+   Urgency Detection: When a PropertyNotify event is received for WM_HINTS or
+   _NET_WM_STATE, the script would check if the urgency bit or the
+   _NET_WM_STATE_DEMANDS_ATTENTION atom is set.
+
+   'Urgent property' = '_NET_WM_STATE_DEMANDS_ATTENTION'.
+
+   I haven't been able to find a program to monitor window property changes.
+   (There's `xprop -spy` but it only monitors ONE window---not all of them.)
+
+   This command might be useful:
+
+   + 'xdotool windowactivate <WINDOWID>'---Activate the window. This command is
+     different from windowfocus: if the window is on another desktop, we will
+     switch to that desktop.
+** TODO Implement 'Window Titler' function
+   Should be able to set a prefix for window titles. This can probably be
+   implemented using `browser.windows.update({ titlePreface: <STRING> })`.
+   https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/windows/update
 ** TODO Reopening a tab should connect to old history
    What happens when a tab is reopened (with a complete history). Does it get
    the same window ID? (Even if it does, is this true on restart when all

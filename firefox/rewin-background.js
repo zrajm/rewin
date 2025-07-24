@@ -19,7 +19,7 @@ async function normalizeFavicon(imageDataUrl) {
   return new Promise((resolve, reject) => {
     let img = new Image()
     img.onerror = () => {
-      reject(Error(`Cannot load image data: '${imageDataUrl}':`))
+      reject(Error(`Cannot load image: '${imageDataUrl}':`))
     }
     img.onload = () => {
       let canvas = document.createElement('canvas')
@@ -86,16 +86,16 @@ function getCurrentTab() {
     .then(([tab]) => tab)
 }
 
-function getHistoryLength(tabId) {
+async function getHistoryLength(tabId) {
   return runInTab(tabId, () => history.length).then(([reply]) => {
     const { result: i, error } = reply ?? {}
     if (error) { throw error }
-    if (!i) { throw Error(`Bad history length (tab ID ${tabId}): ${i}`) }
+    if (!i) { throw Error(`Bad history length (tabId ${tabId}): ${i}`) }
     return i
   })
 }
 
-function errlog(msg) { console.error(msg) }
+function errlog(...msg) { console.error(...msg) }
 
 // Save all currently open window/tabs/favicons that aren't already saved
 // (never modifies/overwrites records that already exists).
@@ -116,16 +116,24 @@ async function scanTabs() {
           return browser.storage.local.get(rewinTabId).then(
             ({ [rewinTabId]: savedTabRecord }) => {
               if (savedTabRecord) { return }   // already exists, skip
-              return normalizeFavicon(favIconUrl).catch(errlog).then(faviconData => {
-                return getRewinFavId(faviconData).then(rewinFavId => {
-                  favicons[rewinFavId] = faviconData
-                  // FIXME: Include full history
-                  const tabData = [url, title, rewinFavId, lastAccessed]
-                  // FIXME: Don't set 'partial' for tabs with no history
-                  const tabMeta = { pos: 0, partial: 1 }
-                  return [rewinTabId, [tabMeta, tabData]] // tab entry
+              return normalizeFavicon(favIconUrl)
+                .catch(errlog)
+                .then(faviconData => {
+                  return Promise.all([
+                    getRewinFavId(faviconData)
+                      .catch(err => errlog(err, `(getRewinFavId() for tabId ${tabId}/${rewinTabId})`)),
+                    getHistoryLength(tabId).catch(() => {}), // suppress errors
+                  ]).then(([rewinFavId, histLength]) => {
+                    favicons[rewinFavId] = faviconData
+                    // FIXME: Include full history
+                    const tabData = [url, title, rewinFavId, lastAccessed]
+                    const tabMeta = Object.assign(
+                      { pos: 0 },
+                      histLength === 1 ? {} : { partial: 1 },
+                    )
+                    return [rewinTabId, [tabMeta, tabData]] // tab entry
+                  })
                 })
-              })
           }).catch(errlog)
         })
       })).then(tabEntries => {
