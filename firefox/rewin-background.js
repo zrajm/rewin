@@ -145,10 +145,10 @@ async function scanTabs() {
                 return tabEntries
               }
               const rewinTabIds = tabEntries.map(([rewinTabId]) => rewinTabId)
-              const winMeta = {
-                active: activeRewinTabId,
-                incognito: incognito ? 1 : undefined,
-              }
+              const winMeta = Object.assign(
+                { active: activeRewinTabId },
+                incognito ? { incognito: 1 } : {},
+              )
               return [[rewinWinId, [winMeta, ...rewinTabIds]], ...tabEntries]
           }).catch(errlog)
         })
@@ -185,8 +185,11 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
   let [meta] = recs[rewinTabId] ??= await loadRec(rewinTabId) ?? [{ pos: 0 }]
 
   // Set tab to 'closed' (unless part of window-close event).
-  meta.closed = isWindowClosing ? undefined : Date.now()
-
+  if (isWindowClosing) {
+    delete meta.closed
+  } else {
+    meta.closed = Date.now()
+  }
   // Save & remove from RAM.
   await saveRec(rewinTabId)
   delete recs[rewinTabId]

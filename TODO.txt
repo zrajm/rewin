@@ -3,7 +3,7 @@
 * TODO Add README
 * Firefox plugin
 ** [0/4] Milestone Version 0.1---Basic Functionality
-*** [3/6] Handle internal state
+*** [3/5] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
      Update internal state for tabs as they are opened/closed/reopened.
@@ -13,7 +13,7 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [7/9] Scan tabs/windows
+**** [8/8] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
@@ -36,11 +36,27 @@
       CLOSED: [2025-07-24 Thu 18:08]
 ***** DONE Rewin badge should reflect 'partial' status for tab
       CLOSED: [2025-07-24 Thu 22:07]
-***** TODO scanTabs() should not overwrite existing data
-***** TODO Set `recs` global var (tab/window/favicon records)
-**** TODO Make background script non-persistent
-     MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
-     to work quite well on my machine?)
+***** DONE Always skip false values when writing values to storage.local
+      CLOSED: [2025-07-24 Thu 23:34]
+      Currently, these values are set to `undefined`---as I thought that that
+      meant they wouldn't be stored, but that turned out to be wrong. Instead
+      of assigning, for example metadata, like this:
+
+        const tabMeta = {
+          pos: 0,
+          partial: histLength > 1 || undefined,
+        }
+
+      It should be written like this:
+
+        const tabMeta = Object.assign(
+          { pos: 0 },
+          histLength === 1 ? {} : { partial: 1 },
+        )
+**** [0/3] Make background script non-persistent
+     :RATIONALE:
+     MDN says that `persistent: true` isn't allowed by manifest 3. (But it
+     seems to work quite well on my machine?)
      https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
 
      Anyway, clearly we should get rid of this and only use storage.local.
@@ -49,6 +65,14 @@
      This also means removing the use of `tabMap` and `winmap` variables
      (replacing them with `browser.sessions.getTabValue` and
      `browser.sessions.getWindowValue`).
+     :END:
+***** TODO Removed global var `recs`
+***** TODO Remove global var `winMap`
+      getRewinWinId() should use a local cache variable, though.
+***** TODO Remove global var `tabMap`
+      getRewinTabId() should use a local cache variable, though.
+***** TODO scanTabs() should not overwrite existing data
+***** TODO Set `recs` global var (tab/window/favicon records)
 **** TODO Track tab list
      Add tabs as they're added to the window. Remove tabs that are dragged into
      their own window.
@@ -65,22 +89,6 @@
      history. In these cases, simply assume the page closest to (what is
      currently believed to be the current page) is the page navigated to by the
      user.
-*** TODO Always skip false values when writing values to storage.local
-    Currently, these values are set to `undefined`---as I thought that that
-    meant they wouldn't be stored, but that turned out to be wrong. Instead of
-    assigning, for example metadata, like this:
-
-      const tabMeta = {
-        pos: 0,
-        partial: histLength > 1 || undefined,
-      }
-
-    It should be written like this:
-
-      const tabMeta = Object.assign(
-        { pos: 0 },
-        histLength === 1 ? {} : { partial: 1 },
-      )
 *** TODO 'Restore tab' function
 *** TODO Update Rewin internal state
     Rewin should look at presently existing tabs and windows, and if there are
