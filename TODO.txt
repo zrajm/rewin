@@ -13,7 +13,7 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [6/9] Scan tabs/windows
+**** [7/9] Scan tabs/windows
 ***** DONE Basic listing of all tabs & windows
       CLOSED: [2025-07-19 Sat 11:21]
 ***** DONE Include rewinWinId & rewinTabId in list
@@ -34,9 +34,10 @@
       has been fully annotated with the Rewin ID info.)
 ***** DONE scanTabs() don't set 'partial' for tabs with no history
       CLOSED: [2025-07-24 Thu 18:08]
+***** DONE Rewin badge should reflect 'partial' status for tab
+      CLOSED: [2025-07-24 Thu 22:07]
 ***** TODO scanTabs() should not overwrite existing data
 ***** TODO Set `recs` global var (tab/window/favicon records)
-***** TODO Rewin badge should reflect 'partial' status for tab
 **** TODO Make background script non-persistent
      MDN says that `persistent: true` isn't allowed by manifest 3. (But it seems
      to work quite well on my machine?)
@@ -136,6 +137,7 @@
    + `xwininfo`
    + `xdotool`
    + `wmctrl`
+   + `obxprop` (openbox-specific)
 
    Urgency Detection: When a PropertyNotify event is received for WM_HINTS or
    _NET_WM_STATE, the script would check if the urgency bit or the

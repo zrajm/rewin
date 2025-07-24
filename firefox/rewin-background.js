@@ -231,26 +231,29 @@ function onURLChange(details) {
   history.replace({ rewin: history.length, ...history.state })
 }
 
-const histIndex = {}
 async function updateToolbarIcon() {
   const { id: tabId, windowId: winId } = await getCurrentTab()
+  const [rewinTabId, rewinWinId] = await Promise.all([
+    getRewinTabId(tabId).catch(errlog),
+    getRewinWinId(winId).catch(errlog),
+  ])
   getHistoryLength(tabId).then(histLen => {
-    histIndex[tabId] = histLen
     browser.action.setIcon({ tabId, path: null })
     browser.action.setTitle({ tabId, title: null })
-    // FIXME: Only set badge text if there's restored history!
-    browser.action.setBadgeText({ tabId, text: histLen ? `${histLen}` : null })
-    console.log('HISTINDEX', JSON.stringify(histIndex))
+    loadRec(rewinTabId).then(rewinHist => {
+      const rewinHistLen = (rewinHist ?? [0]).length - 1
+      const missing = histLen - rewinHistLen
+      const text = missing ? `${missing}` : null
+      // Badge displays number of unsaved history entries.
+      browser.action.setBadgeText({ tabId, text })
+    })
   }).catch(err => {
-    histIndex[tabId] = null
     browser.action.setIcon({ tabId, path: 'rewin-off.svg' })
     browser.action.setTitle({ tabId, title: `DISABLED: ${err}` })
     browser.action.setBadgeText({ tabId, text: null })
   })
   // Update window's 'tab' property.
-  const rewinTabId = tabMap[tabId]    ??= await getRewinTabId(tabId)
-  const rewinWinId = winMap[winId]    ??= await getRewinWinId(winId)
-  let   [meta]     = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
+  let [meta] = recs[rewinWinId] ??= await loadRec(rewinWinId) ?? [{}]
   if (meta.tab != rewinTabId) {
     meta.tab = rewinTabId
     await saveRec(rewinWinId)
