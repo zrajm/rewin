@@ -2,8 +2,8 @@
 
 * TODO Add README
 * Firefox plugin
-** [0/4] Milestone Version 0.1---Basic Functionality
-*** [3/5] Handle internal state
+** [0/6] Milestone Version 0.1---Basic Functionality
+*** [3/6] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
      Update internal state for tabs as they are opened/closed/reopened.
@@ -53,7 +53,6 @@
           { pos: 0 },
           histLength === 1 ? {} : { partial: 1 },
         )
-***** TODO scanTabs() should not overwrite existing data
 **** [4/4] Make background script non-persistent
      :RATIONALE:
      MDN says that `persistent: true` isn't allowed by manifest 3. (But it
@@ -93,6 +92,41 @@
      history. In these cases, simply assume the page closest to (what is
      currently believed to be the current page) is the page navigated to by the
      user.
+*** [1/7] Search
+**** DONE Show search results
+     CLOSED: [2025-07-25 Fri 23:14]
+**** TODO Select entry in search result to go to that tab
+**** TODO Remember old search when reopening menu
+**** TODO Debounce search input
+     I.e. if user types fast, interrupt and restart ongoing search.
+
+ https://medium.com/@code.sachin/making-sense-of-debouncing-in-javascript-input-change-9a91d02738b6
+ const searchElement = document.getElementById('search');
+
+ const searchData = (event) => {
+     const value = event.target.value;
+     console.log("Searching...", value);
+     // your API call logic goes here
+ }
+
+ const debounce = (callback, waitTime) => {
+     let timer;
+     return (...args) => {
+         clearTimeout(timer);
+         timer = setTimeout(() => {
+             callback(...args);
+         }, waitTime);
+     };
+ }
+
+ const debounceHandler = debounce(searchData, 1000);
+ searchElement.addEventListener('input', debounceHandler);
+
+**** TODO Typing with menu open should focus search field
+**** TODO More advanced query language
+**** TODO Display closed tabs, and old history entries
+     These should be highlighted in search result, but how? (Crossed out? --
+     That's probably too hard to read.)
 *** TODO 'Restore tab' function
 *** TODO Update Rewin internal state
     Rewin should look at presently existing tabs and windows, and if there are
@@ -104,6 +138,7 @@
     This function is basically sure to be triggered on install.
 
     browser.tabs.goBack(tabId).then(onGoBack, onError)
+*** TODO scanTabs() should not overwrite existing data
 *** TODO If a favicon already exists, don't overwrite
 ** [0/1] Milestone Version 0.2---Favicon support
 *** TODO History menu should now include favicons

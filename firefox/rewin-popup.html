@@ -31,6 +31,12 @@
     padding: 4px 10px;
     font: inherit;
   }
+  mark {
+    background: #888d;
+    outline: 1px solid #888d;
+    color: inherit;
+    z-index:-1;
+  }
   /* Menu item appearance. */
   div {
     /* Menu items are <a>, <small> or <hr>. */
@@ -91,17 +97,8 @@
 <div class=menu id=top>
   <a href="#" badge>Scan this tab’s history</a>
   <hr>
-  <input id=q placeholder="Search tabs & windows…">
-  <div id=out>
-    <a href="https://www.google.com/search?q=history+of+Viking+exploration">
-      <img src="icon/google.png"><span>history of Viking exploration - Google Search</span></a>
-    <a href="https://en.wikipedia.org/wiki/Norse_exploration_of_North_America">
-      <img src="icon/wikipedia.png"><span>Norse exploration of North America - Wikipedia</span></a>
-    <a href="https://en.wikipedia.org/wiki/L%27Anse_aux_Meadows">
-      <img src="icon/wikipedia.png"><span>L'Anse aux Meadows - Wikipedia</span></a>
-    <a href="https://www.google.com/search?q=L%27Anse+aux+Meadows+reconstruction&tbm=isch">
-      <img src="icon/google.png"><span>L'Anse aux Meadows reconstruction - Google Search</span></a>
-  </div>
+  <input id=q placeholder="Search tabs & windows…" autocomplete=off>
+  <div id=out></div>
   <hr>
   <a href="#tabs">Restore Tabs</a>
   <div class=menu id=tabs>
@@ -203,4 +200,5 @@
   <hr>
   <a href="#">Export History…</a>
 </div>
+<script type=module src=rewin-popup.js></script>
 <!--[eof]-->
