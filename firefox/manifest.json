@@ -33,8 +33,7 @@
   ],
   "background": {
     "scripts": ["rewin-background.js"],
-    "type": "module",
-    "persistent": true
+    "type": "module"
   },
   "action": {
     "default_icon": {
