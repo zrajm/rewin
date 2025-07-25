@@ -58,18 +58,12 @@
       border: 0; border-top: 1px solid #fefeff;
     }
     padding: 4px;
-  }
-  /* Menu scrolling left/right. */
-  div[id] {
+    /* Menu scrolling left/right. */
     &[id="top"] { position: relative }
     & div[id] { position: absolute; width: 100%; height: 100%; left: 100%; top: 0; }
-
-    /* Show, top menu, or submenu that match URL hash fragment. */
-    visibility: hidden;
+    visibility: hidden;         /* show submenu matching URL fragment */
     &[id="top"]:not(:has(:target)), &:target { visibility: visible }
-
-    /* Delay 'visibility' toggling until animation is done. */
-    transition: visibility .5s;
+    transition: visibility .5s; /* delay 'visibility' until animation done */
   }
   a[badge]:after {
     border-radius: 5px;
