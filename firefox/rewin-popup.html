@@ -18,12 +18,21 @@
     background: #42414d;
     color: #fbfbfe;
   }
+  :focus { outline: 2px solid #ccf8 }
   a {
     overflow-x: hidden; color: inherit; text-decoration: none;
     &:hover, &.current { background: #fff2 }
   }
+  input {
+    height: 16px; margin: 2px 0 4px;
+    border: 0; border-radius: 4px;
+    background: #0004; color: inherit;
+    height: auto; width: 100%;
+    padding: 4px 10px;
+    font: inherit;
+  }
   /* Menu item appearance. */
-  div[id] {
+  div {
     /* Menu items are <a>, <small> or <hr>. */
     & > :is(a, small) { /* menu items */
       &:is(small) { opacity: 69%; font-size: 11px } /* small text */
@@ -57,10 +66,12 @@
       opacity: 25%; margin: 4px 0; height: 1px;
       border: 0; border-top: 1px solid #fefeff;
     }
+  }
+  div.menu {
     padding: 4px;
     /* Menu scrolling left/right. */
     &[id="top"] { position: relative }
-    & div[id] { position: absolute; width: 100%; height: 100%; left: 100%; top: 0; }
+    & div.menu { position: absolute; width: 100%; height: 100%; left: 100%; top: 0; }
     visibility: hidden;         /* show submenu matching URL fragment */
     &[id="top"]:not(:has(:target)), &:target { visibility: visible }
     transition: visibility .5s; /* delay 'visibility' until animation done */
@@ -77,11 +88,23 @@
     min-height: 8px;
   }
 </style>
-<div id=top>
+<div class=menu id=top>
   <a href="#" badge>Scan this tab’s history</a>
   <hr>
+  <input id=q placeholder="Search tabs & windows…">
+  <div id=out>
+    <a href="https://www.google.com/search?q=history+of+Viking+exploration">
+      <img src="icon/google.png"><span>history of Viking exploration - Google Search</span></a>
+    <a href="https://en.wikipedia.org/wiki/Norse_exploration_of_North_America">
+      <img src="icon/wikipedia.png"><span>Norse exploration of North America - Wikipedia</span></a>
+    <a href="https://en.wikipedia.org/wiki/L%27Anse_aux_Meadows">
+      <img src="icon/wikipedia.png"><span>L'Anse aux Meadows - Wikipedia</span></a>
+    <a href="https://www.google.com/search?q=L%27Anse+aux+Meadows+reconstruction&tbm=isch">
+      <img src="icon/google.png"><span>L'Anse aux Meadows reconstruction - Google Search</span></a>
+  </div>
+  <hr>
   <a href="#tabs">Restore Tabs</a>
-  <div id=tabs>
+  <div class=menu id=tabs>
     <a href="#top">Restore Tabs</a>
     <hr>
     <a href="#tabs2">tabs2</a>
@@ -95,7 +118,7 @@
     <a href="#">SOUCHSOUHSRCHU</a>
     <a href="#">SOUCHSOUHSRCHU</a>
     <a href="#">SOUCHSOUHSRCHU</a>
-    <div id=tabs2>
+    <div class=menu id=tabs2>
       <a href="#tabs">Tabs2</a>
       <hr>
       <a href="#">SOUCHSOUHSRCHU</a>
@@ -111,7 +134,7 @@
     </div>
   </div>
   <a href="#wins">Restore Windows</a>
-  <div id=wins>
+  <div class=menu id=wins>
     <a href="#top">Restore Windows</a>
     <hr>
     <a href="#">SOUCHSOUHSRCHU</a>
