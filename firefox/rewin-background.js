@@ -40,21 +40,20 @@ function createId(prefix) {
     .then(({ [rewinId]: data }) => data ? createId(prefix) : rewinId)
 }
 
-// getRewinTabId(tabId): Given a browser tabId, return an rewinTabId string.
-// Use internal mapping table, failing that, read session tab value 'rewinId'
-// from the tab itself (this value is restored if tab is reopened). If no
-// rewinId could be found, generate a new one.
+// getRewinTabId(tabId) / getRewinWinId(windowId): Return the Rewin tab/window
+// ID, corresponding to given (browser) tabId/windowId. If no Rewin ID exists
+// for the tab/window, a new one is created and returned.
 function getRewinTabId(tabId) {
   return browser.sessions.getTabValue(+tabId, 'rewinId').then(rewinId =>
-    rewinId ?? createId('t').then(rewinId => (
-      browser.sessions.setTabValue(+tabId, 'rewinId', rewinId),
-      rewinId)))
+    rewinId ?? createId('t').then(rewinId =>
+      browser.sessions.setTabValue(+tabId, 'rewinId', rewinId).then(() =>
+        rewinId)))
 }
 function getRewinWinId(windowId) {
   return browser.sessions.getWindowValue(+windowId, 'rewinId').then(rewinId =>
-    rewinId ?? createId('w').then(rewinId => (
-      browser.sessions.setWindowValue(+windowId, 'rewinId', rewinId),
-      rewinId)))
+    rewinId ?? createId('w').then(rewinId =>
+      browser.sessions.setWindowValue(+windowId, 'rewinId', rewinId).then(() =>
+        rewinId)))
 }
 // Generate checksum based Rewin ID for a favicon. (Returns a promise.)
 async function getRewinFavId(str) {
