@@ -162,9 +162,8 @@ async function scanTabs() {
 }
 
 // Save tab to storage.
-let tabMap = {}
 async function mapTab({ id: tabId }) {
-  const rewinTabId = tabMap[tabId] = await getRewinTabId(tabId)
+  const rewinTabId = await getRewinTabId(tabId)
   console.log(`TAB OPENED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
@@ -175,8 +174,7 @@ async function mapTab({ id: tabId }) {
   return saveRec(rewinTabId, rewinHist)
 }
 async function unmapTab(tabId, { windowId, isWindowClosing }) {
-  const rewinTabId = tabMap[tabId]
-  if (!rewinTabId) { throw `Tab unknown to Rewin (tabId: ${tabId})` }
+  const rewinTabId = await getRewinTabId(tabId)
   console.log(`TAB CLOSED ${tabId}/${rewinTabId}`)
 
   // Make sure tab record is initiated (load, or set to empty).
@@ -190,7 +188,6 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
     meta.closed = Date.now()
   }
   // Save & remove from RAM.
-  delete tabMap[tabId]
   return saveRec(rewinTabId, rewinHist)
 }
 
