@@ -195,9 +195,8 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
 }
 
 // Save window to storage.
-let winMap = {}
 async function mapWindow({ id: winId }) {
-  const rewinWinId = winMap[winId] = await getRewinWinId(winId)
+  const rewinWinId = await getRewinWinId(winId)
   console.log(`WINDOW OPENED ${winId}/${rewinWinId}`)
 
   // Make sure window record is initiated (load, or set to empty).
@@ -208,7 +207,7 @@ async function mapWindow({ id: winId }) {
   return saveRec(rewinWinId, rewinTabIds)
 }
 async function unmapWindow(winId) {
-  const rewinWinId = winMap[winId]
+  const rewinWinId = await getRewinWinId(winId)
   if (!rewinWinId) { throw `Window unknown to Rewin (winId: ${winId})` }
   console.log(`WINDOW CLOSED ${winId}/${rewinWinId}`)
 
@@ -220,7 +219,6 @@ async function unmapWindow(winId) {
   meta.closed = Date.now()
 
   // Save & remove from RAM.
-  delete winMap[winId]
   return saveRec(rewinWinId, rewinTabIds)
 }
 
@@ -289,5 +287,6 @@ browser.webNavigation.onReferenceFragmentUpdated.addListener(onURLChange)
 console.log('Rewin loaded')
 
 window.scanTabs = scanTabs // FIXME: Make available for debugging
+window.getRewinTabId = getRewinTabId
 
 //[eof]
