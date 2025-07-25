@@ -66,20 +66,14 @@ async function getRewinFavId(str) {
     .replace(/[+/]/g, x => ({ '+': '-', '/': '_' }[x]))
 }
 
-// Data is cached, indexed by rewinId (which have unique
-// 1st letter for each data type).
-const [saveRec, loadRec, killRec] = (() => {
-  let recs = {}
-  function saveRec(rewinId, data) {
-    return browser.storage.local.set({ [rewinId]: recs[rewinId] = data })
-  }
-  function loadRec(rewinId) {
-    return recs[rewinId] ?? browser.storage.local.get(rewinId)
-      .then(({ [rewinId]: value }) => value)
-  }
-  function killRec(rewinId) { delete recs[rewinId] }
-  return [saveRec, loadRec, killRec]
-})()
+// Save/load data from storage.local.
+function saveRec(rewinId, data) {
+  return browser.storage.local.set({ [rewinId]: data })
+}
+function loadRec(rewinId) {
+  return browser.storage.local.get(rewinId)
+    .then(({ [rewinId]: value }) => value)
+}
 
 function runInTab(tabId, func, ...args) {
   return browser.scripting.executeScript({ target: { tabId }, func, args })
@@ -199,7 +193,6 @@ async function unmapTab(tabId, { windowId, isWindowClosing }) {
   // Save & remove from RAM.
   delete tabMap[tabId]
   return saveRec(rewinTabId, rewinHist)
-    .then(() => killRec(rewinTabId))
 }
 
 // Save window to storage.
@@ -230,7 +223,6 @@ async function unmapWindow(winId) {
   // Save & remove from RAM.
   delete winMap[winId]
   return saveRec(rewinWinId, rewinTabIds)
-    .then(() => killRec(rewinWinId))
 }
 
 function onURLChange(details) {
