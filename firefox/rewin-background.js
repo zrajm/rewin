@@ -36,8 +36,7 @@ async function normalizeFavicon(imageDataUrl) {
 // Create a new unique Rewin ID (prefix: 't' = tab, 'w' = window).
 function createId(prefix) {
   const rewinId = `${prefix}${randomStr()}`
-  return browser.storage.local.get(rewinId)
-    .then(({ [rewinId]: data }) => data ? createId(prefix) : rewinId)
+  return loadRec(rewinId).then(data => data ? createId(prefix) : rewinId)
 }
 
 // getRewinTabId(tabId) / getRewinWinId(windowId): Return the Rewin tab/window
@@ -104,48 +103,46 @@ async function scanTabs() {
     }) => {
       // Create tab records.
       let activeRewinTabId
-      return Promise.all(tabs.map(({             // tabs
+      return Promise.all(tabs.map(({           // tabs
         id: tabId, url, title, favIconUrl, lastAccessed, active,
       }) => {
         return getRewinTabId(tabId).then(rewinTabId => {
           if (active) { activeRewinTabId = rewinTabId }
-          return browser.storage.local.get(rewinTabId).then(
-            ({ [rewinTabId]: savedTabRecord }) => {
-              if (savedTabRecord) { return }   // already exists, skip
-              return normalizeFavicon(favIconUrl)
-                .catch(errlog)
-                .then(faviconData => {
-                  return Promise.all([
-                    getRewinFavId(faviconData)
-                      .catch(err => errlog(err, `(getRewinFavId() for tabId ${tabId}/${rewinTabId})`)),
-                    getHistoryLength(tabId).catch(() => {}), // suppress errors
-                  ]).then(([rewinFavId, histLength]) => {
-                    favicons[rewinFavId] = faviconData
-                    // FIXME: Include full history
-                    const tabData = [url, title, rewinFavId, lastAccessed]
-                    const tabMeta = Object.assign(
-                      { pos: 0 },
-                      histLength === 1 ? {} : { partial: 1 },
-                    )
-                    return [rewinTabId, [tabMeta, tabData]] // tab entry
-                  })
+          return loadRec(rewinTabId).then(savedTabRecord => {
+            if (savedTabRecord) { return }     // already exists, skip
+            return normalizeFavicon(favIconUrl)
+              .catch(errlog)
+              .then(faviconData => {
+                return Promise.all([
+                  getRewinFavId(faviconData)
+                    .catch(err => errlog(err, `(getRewinFavId() for tabId ${tabId}/${rewinTabId})`)),
+                  getHistoryLength(tabId).catch(() => {}), // suppress errors
+                ]).then(([rewinFavId, histLength]) => {
+                  favicons[rewinFavId] = faviconData
+                  // FIXME: Include full history
+                  const tabData = [url, title, rewinFavId, lastAccessed]
+                  const tabMeta = Object.assign(
+                    { pos: 0 },
+                    histLength === 1 ? {} : { partial: 1 },
+                  )
+                  return [rewinTabId, [tabMeta, tabData]] // tab entry
                 })
+              })
           }).catch(errlog)
         })
       })).then(tabEntries => {
         // Create window record.
         return getRewinWinId(windowId).then(rewinWinId => {
-          return browser.storage.local.get(rewinWinId).then(
-            ({ [rewinWinId]: savedWinRecord }) => {
-              if (savedWinRecord) {            // window already exists, skip
-                return tabEntries
-              }
-              const rewinTabIds = tabEntries.map(([rewinTabId]) => rewinTabId)
-              const winMeta = Object.assign(
-                { active: activeRewinTabId },
-                incognito ? { incognito: 1 } : {},
-              )
-              return [[rewinWinId, [winMeta, ...rewinTabIds]], ...tabEntries]
+          return loadRec(rewinWinId).then(savedWinRecord => {
+            if (savedWinRecord) {              // window already exists, skip
+              return tabEntries
+            }
+            const rewinTabIds = tabEntries.map(([rewinTabId]) => rewinTabId)
+            const winMeta = Object.assign(
+              { active: activeRewinTabId },
+              incognito ? { incognito: 1 } : {},
+            )
+            return [[rewinWinId, [winMeta, ...rewinTabIds]], ...tabEntries]
           }).catch(errlog)
         })
       })
@@ -156,8 +153,8 @@ async function scanTabs() {
     return browser.storage.local.set({
       ...Object.fromEntries(entries.flat()),
       ...favicons,
-    }).catch(errlog)
-  })
+    })
+  }).catch(errlog)
 }
 
 // Save tab to storage.
