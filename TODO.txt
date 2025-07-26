@@ -92,10 +92,11 @@
      history. In these cases, simply assume the page closest to (what is
      currently believed to be the current page) is the page navigated to by the
      user.
-*** [1/7] Search
+*** [2/7] Search
 **** DONE Show search results
      CLOSED: [2025-07-25 Fri 23:14]
-**** TODO Select entry in search result to go to that tab
+**** DONE Select entry in search result to go to that tab
+     CLOSED: [2025-07-26 Sat 02:56]
 **** TODO Remember old search when reopening menu
 **** TODO Debounce search input
      I.e. if user types fast, interrupt and restart ongoing search.
