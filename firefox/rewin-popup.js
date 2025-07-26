@@ -75,11 +75,15 @@ document.body.onclick = evt => {
   if (target.tagName !== 'A' || type !== 'rewinTabId') { return }
   evt.preventDefault()
   getBrowserTabId(rewinTabId).then(([tabId, windowId]) => {
-    return Promise.all([
-      browser.tabs   .update(+tabId,    { active: true }).catch(console.error),
-      browser.windows.update(+windowId, { focused: true, state: 'normal' })
-        .catch(() => {}),
-    ])
+    // Only unminimize (don't affect fullscreen etc).
+    return browser.windows.get(windowId).then(({ state }) => {
+      if (state === 'minimized') {
+        return browser.windows.update(windowId, { state: 'normal' })
+      }
+    }).then(x => Promise.all([
+      browser.tabs   .update(+tabId,    { active : true }).catch(console.error),
+      browser.windows.update(+windowId, { focused: true }).catch(() => {}),
+    ]))
   }).then(() => close())  // close Rewin popup
 }
 
