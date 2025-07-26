@@ -2,7 +2,7 @@
 
 * TODO Add README
 * Firefox plugin
-** [0/4] Milestone Version 0.1---Basic Functionality
+** [0/7] Milestone Version 0.1---Basic Functionality
 *** [3/3] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
@@ -86,6 +86,17 @@
 **** DONE Sort output
      CLOSED: [2025-07-26 Sat 06:47]
 *** TODO Show actual history data in popup menu
+    This is silly right now, as only a single entry is saved in history right
+    now, but it will be useful that this works Very Soon Now™!
+*** TODO Add keybinding for opening Rewin popup
+*** TODO Popup should allow for up/down arrow key navigation
+    + → = open (selected) submenu (same as enter or space)
+    + ← = go back one submenu
+    + ↓ = same as Tab
+    + ↑ = same as Shift+Tab
+
+    Arrow ↑/↓ should to select next menu entry, even when in search field.
+*** TODO Review docs to make sure they aren't out of date
 *** [0/3] Internal state continued
 **** TODO Review existing state updating
 **** TODO Track tab list
@@ -267,11 +278,6 @@
 
    sessionId -- for restoring recently closed tabs/windows
    (https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/sessions)
-** TODO Popup should allow for up/down arrow key navigation
-   + → = open (selected) submenu (same as enter or space)
-   + ← = go back one submenu
-   + ↓ = same as Tab
-   + ↑ = same as Shift+Tab
 ** TODO Popup should have centered Submenu headings
    Just like in Firefox menus, under e.g. "History > Bookmarks" then
    "Bookmarks" is the centered name at the top of the submenu.
