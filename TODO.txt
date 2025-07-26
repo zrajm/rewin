@@ -85,44 +85,43 @@
      Use `onReferenceFragmentUpdated`, `onCommitted`, `onHistoryStateUpdated`
      and events to listen for user navigation.
 **** TODO Show actual history data in popup menu
-     (But without favicons.)
 **** TODO Basic back/forward navigation handling
      Simple handling of back/forward history navigation. This does not include
      heuristics to disambiguate when the same URL appears multiple times in
      history. In these cases, simply assume the page closest to (what is
      currently believed to be the current page) is the page navigated to by the
      user.
-*** [2/7] Search
+*** [3/7] Search
 **** DONE Show search results
      CLOSED: [2025-07-25 Fri 23:14]
 **** DONE Select entry in search result to go to that tab
      CLOSED: [2025-07-26 Sat 02:56]
-**** TODO Remember old search when reopening menu
+**** DONE Remember old search when reopening menu
+     CLOSED: [2025-07-26 Sat 03:44]
 **** TODO Debounce search input
      I.e. if user types fast, interrupt and restart ongoing search.
 
- https://medium.com/@code.sachin/making-sense-of-debouncing-in-javascript-input-change-9a91d02738b6
- const searchElement = document.getElementById('search');
+     https://medium.com/@code.sachin/making-sense-of-debouncing-in-javascript-input-change-9a91d02738b6
+     const searchElement = document.getElementById('search');
 
- const searchData = (event) => {
-     const value = event.target.value;
-     console.log("Searching...", value);
-     // your API call logic goes here
- }
+     const searchData = (event) => {
+         const value = event.target.value;
+         console.log("Searching...", value);
+         // your API call logic goes here
+     }
 
- const debounce = (callback, waitTime) => {
-     let timer;
-     return (...args) => {
-         clearTimeout(timer);
-         timer = setTimeout(() => {
-             callback(...args);
-         }, waitTime);
-     };
- }
+     const debounce = (callback, waitTime) => {
+         let timer;
+         return (...args) => {
+             clearTimeout(timer);
+             timer = setTimeout(() => {
+                 callback(...args);
+             }, waitTime);
+         };
+     }
 
- const debounceHandler = debounce(searchData, 1000);
- searchElement.addEventListener('input', debounceHandler);
-
+     const debounceHandler = debounce(searchData, 1000);
+     searchElement.addEventListener('input', debounceHandler);
 **** TODO Typing with menu open should focus search field
 **** TODO More advanced query language
 **** TODO Display closed tabs, and old history entries

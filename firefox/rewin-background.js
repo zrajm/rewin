@@ -70,8 +70,7 @@ function saveRec(rewinId, data) {
   return browser.storage.local.set({ [rewinId]: data })
 }
 function loadRec(rewinId) {
-  return browser.storage.local.get(rewinId)
-    .then(({ [rewinId]: value }) => value)
+  return browser.storage.local.get(rewinId).then(({ [rewinId]: data }) => data)
 }
 
 function runInTab(tabId, func, ...args) {

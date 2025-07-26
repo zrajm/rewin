@@ -6,6 +6,14 @@ const storage = await browser.storage.local.get()
 const tabs = Object.entries(storage)
   .filter(([rewinTabId]) => rewinTabId[0] === 't')
 
+// Save/load data from storage.local.
+function saveRec(rewinId, data) {
+  return browser.storage.local.set({ [rewinId]: data })
+}
+function loadRec(rewinId) {
+  return browser.storage.local.get(rewinId).then(({ [rewinId]: data }) => data)
+}
+
 function search(str, func) {
   const regex = RegExp(RegExp.escape(escapeHtml(str)).replace(/[ ]+/g, '.*?'), 'ig')
   return tabs.flatMap(([rewinTabId, [tabMeta, ...rewinHistEntries]]) => {
@@ -43,15 +51,24 @@ function escapeHtml(text) {
 const q   = document.querySelector('#q')
 const out = document.querySelector('#out')
 
+// Restore search query when opening popup.
+loadRec('q').then(query => {
+  q.value = query ?? ''
+  q.dispatchEvent(new Event('input'))
+  q.focus({ preventScroll: true })
+})
+// Perform a search whenever input changes.
 q.oninput = () => {
-  out.innerHTML = search(q.value, (regex, rewinTabId, url, title, favicon, epoch) => {
-    return `<a title="${url}" href="rewinTabId:${rewinTabId}">`
-      + `<img src="data:image/png;base64,${favicon}">`
-      + `${title.replace(regex, '<mark>$&</mark>').replace(/ /g, ' ')}`
-      +`</a>`
-  }).join('\n')
+  const query = q.value; saveRec('q', query)
+  out.innerHTML = !query ? ''
+    : search(query, (regex, rewinTabId, url, title, favicon, epoch) => {
+      return `<a title="${url}" href="rewinTabId:${rewinTabId}">`
+        + `<img src="data:image/png;base64,${favicon}">`
+        + `${title.replace(regex, '<mark>$&</mark>').replace(/ /g, ' ')}`
+        +`</a>`
+    }).join('\n')
 }
-// Go to a browser tab (based on 'rewinTabId:<TABID>' link).
+// Go to browser tab when clicking search result.
 document.body.onclick = evt => {
   const { target } = evt
   const [type, rewinTabId] = target.getAttribute('href').split(':')
@@ -65,6 +82,5 @@ document.body.onclick = evt => {
     ])
   }).then(() => close())  // close Rewin popup
 }
-q.focus({ preventScroll: true })
 
 //[eof]
