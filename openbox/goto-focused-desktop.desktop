@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Exec=<ENTER_YOUR_FULL_PATH_TO_SCRIPT_HERE>/goto-focused-desktop.py
+Name=goto-focused-desktop
+Comment=When a window is focused in Openbox, go to that window's desktop.
+#[eof]

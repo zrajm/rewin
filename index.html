@@ -2,7 +2,7 @@
 <link rel=stylesheet href=www/nojs.css><textarea disabled>
 
 Created: 2025-06-02T17:49:42+02:00
-Updated: 2025-07-24T10:40:49+02:00
+Updated: 2025-07-26T11:01:05+02:00
 License: CC BY-NC-SA 4.0 (text), GPLv2 (code).
 Favicon: /www/favicon.svg
 Author: zrajm
@@ -45,6 +45,38 @@ welcome to try it out. :)
 [`firefox/rewin-off.svg`]: firefox/rewin-off.svg
 [`firefox/rewin-popup.html`]: firefox/rewin-popup.html
 [`firefox/rewin.svg`]: firefox/rewin.svg
+
+
+# Openbox Desktop Switching
+
+When a window is focused that isn't on the current desktop Openbox doesn't
+switch to that desktop. Instead that desktop's icon is highlighted in the
+panel. I'd argue that this is a bug, but Openbox argues that this is a feature
+(so as to not distract the user).
+
+To change this behavior, you'll a daemon that monitors the EWMH properties of
+the windows, and if it finds the 'urgent' property on a window---go to that
+window's desktop.
+
+| Function                 | File                                                  |
+|--------------------------|-------------------------------------------------------|
+| Openbox Desktop file     | <nobr>[`openbox/goto-focused-desktop.desktop`]</nobr> |
+| Desktop-switching script | [`openbox/goto-focused-desktop.py`]                   |
+
+[`openbox/goto-focused-desktop.desktop`]: openbox/goto-focused-desktop.desktop
+[`openbox/goto-focused-desktop.py`]: openbox/goto-focused-desktop.py
+
+The above script obeys the EWMH standard and should work for any window manager
+(not just Openbox) if you find that your window manager is similarly broken.
+
+To get everything to work, you'll need to edit `goto-focused-desktop.py` to
+change the `Exec` path (to wherever you put your `goto-focused-desktop.py`
+script), and you'll also need to install the Apt package `python3-xlib`, like
+so:
+
+```
+apt install python3-xlib
+```
 
 
 # Milestones
