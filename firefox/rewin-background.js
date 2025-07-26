@@ -1,10 +1,6 @@
 /*-*- js-indent-level: 2 -*-*/
 // Copyright 2025 by zrajm. Licenses: CC BY-SA (text), GPLv2 (code).
 
-/**********************/
-/** Helper Functions **/
-/**********************/
-
 // Random string (9 byte = 72bit = 12 characters in websafe base64).
 function randomStr() {
   return btoa(String.fromCharCode(
