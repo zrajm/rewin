@@ -2,8 +2,8 @@
 
 * TODO Add README
 * Firefox plugin
-** [0/6] Milestone Version 0.1---Basic Functionality
-*** [3/6] Handle internal state
+** [0/4] Milestone Version 0.1---Basic Functionality
+*** [3/3] Handle internal state
 **** DONE Track state of tabs
      CLOSED: [2025-07-17 Thu 05:45]
      Update internal state for tabs as they are opened/closed/reopened.
@@ -13,78 +13,89 @@
 **** DONE Track current tab for each window
      CLOSED: [2025-07-17 Thu 07:54]
      Update `meta.pos` (the index of the currently selected tab).
-**** [8/8] Scan tabs/windows
-***** DONE Basic listing of all tabs & windows
-      CLOSED: [2025-07-19 Sat 11:21]
-***** DONE Include rewinWinId & rewinTabId in list
-      CLOSED: [2025-07-20 Sun 00:35]
-***** DONE Set window metadata 'active' to rewinTabId
-      CLOSED: [2025-07-20 Sun 00:49]
-***** DONE scanTabs() should write favicon properly
-      CLOSED: [2025-07-24 Thu 10:40]
-***** DONE Don't use await naïvely in scanTabs()
-      CLOSED: [2025-07-24 Thu 10:40]
-      Can we fit run the whole loop, with inventorying the tabs/windows AND
-      saving Rewin ID's into single a loop?
+*** [8/8] Scan tabs/windows
+**** DONE Basic listing of all tabs & windows
+     CLOSED: [2025-07-19 Sat 11:21]
+**** DONE Include rewinWinId & rewinTabId in list
+     CLOSED: [2025-07-20 Sun 00:35]
+**** DONE Set window metadata 'active' to rewinTabId
+     CLOSED: [2025-07-20 Sun 00:49]
+**** DONE scanTabs() should write favicon properly
+     CLOSED: [2025-07-24 Thu 10:40]
+**** DONE Don't use await naïvely in scanTabs()
+     CLOSED: [2025-07-24 Thu 10:40]
+     Can we fit run the whole loop, with inventorying the tabs/windows AND
+     saving Rewin ID's into single a loop?
 
-      The loop that adds rewinWinId & rewinTabId to the list uses await in a
-      very clumsy manner. Rather than solving everything sequentially, and
-      using blocking awaits at all points, use `.then()` and parallelize as
-      much as possible. (But still output the information, only after the data
-      has been fully annotated with the Rewin ID info.)
-***** DONE scanTabs() don't set 'partial' for tabs with no history
-      CLOSED: [2025-07-24 Thu 18:08]
-***** DONE Rewin badge should reflect 'partial' status for tab
-      CLOSED: [2025-07-24 Thu 22:07]
-***** DONE Always skip false values when writing values to storage.local
-      CLOSED: [2025-07-24 Thu 23:34]
-      Currently, these values are set to `undefined`---as I thought that that
-      meant they wouldn't be stored, but that turned out to be wrong. Instead
-      of assigning, for example metadata, like this:
+     The loop that adds rewinWinId & rewinTabId to the list uses await in a
+     very clumsy manner. Rather than solving everything sequentially, and
+     using blocking awaits at all points, use `.then()` and parallelize as
+     much as possible. (But still output the information, only after the data
+     has been fully annotated with the Rewin ID info.)
+**** DONE scanTabs() don't set 'partial' for tabs with no history
+     CLOSED: [2025-07-24 Thu 18:08]
+**** DONE Rewin badge should reflect 'partial' status for tab
+     CLOSED: [2025-07-24 Thu 22:07]
+**** DONE Always skip false values when writing values to storage.local
+     CLOSED: [2025-07-24 Thu 23:34]
+     Currently, these values are set to `undefined`---as I thought that that
+     meant they wouldn't be stored, but that turned out to be wrong. Instead
+     of assigning, for example metadata, like this:
 
-        const tabMeta = {
-          pos: 0,
-          partial: histLength > 1 || undefined,
-        }
+       const tabMeta = {
+         pos: 0,
+         partial: histLength > 1 || undefined,
+       }
 
-      It should be written like this:
+     It should be written like this:
 
-        const tabMeta = Object.assign(
-          { pos: 0 },
-          histLength === 1 ? {} : { partial: 1 },
-        )
-**** [4/4] Make background script non-persistent
-     :RATIONALE:
-     MDN says that `persistent: true` isn't allowed by manifest 3. (But it
-     seems to work quite well on my machine?)
-     https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
+       const tabMeta = Object.assign(
+         { pos: 0 },
+         histLength === 1 ? {} : { partial: 1 },
+       )
+*** [4/4] Make background script non-persistent
+    :RATIONALE:
+    MDN says that `persistent: true` isn't allowed by manifest 3. (But it
+    seems to work quite well on my machine?)
+    https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background
 
-     Anyway, clearly we should get rid of this and only use storage.local.
-     https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts
+    Anyway, clearly we should get rid of this and only use storage.local.
+    https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Background_scripts
 
-     This also means removing the use of `tabMap` and `winmap` variables
-     (replacing them with `browser.sessions.getTabValue` and
-     `browser.sessions.getWindowValue`).
-     :END:
-***** DONE Remove global var `recs`
-      CLOSED: [2025-07-24 Thu 23:43]
-***** DONE Remove global var `winMap`
-      CLOSED: [2025-07-25 Fri 14:09]
-      getRewinWinId() should use a local cache variable, though.
-***** DONE Remove global var `tabMap`
-      CLOSED: [2025-07-25 Fri 14:13]
-      getRewinTabId() should use a local cache variable, though.
-***** DONE Remove persistence from manifest
-      CLOSED: [2025-07-25 Fri 14:15]
+    This also means removing the use of `tabMap` and `winmap` variables
+    (replacing them with `browser.sessions.getTabValue` and
+    `browser.sessions.getWindowValue`).
+    :END:
+**** DONE Remove global var `recs`
+     CLOSED: [2025-07-24 Thu 23:43]
+**** DONE Remove global var `winMap`
+     CLOSED: [2025-07-25 Fri 14:09]
+     getRewinWinId() should use a local cache variable, though.
+**** DONE Remove global var `tabMap`
+     CLOSED: [2025-07-25 Fri 14:13]
+     getRewinTabId() should use a local cache variable, though.
+**** DONE Remove persistence from manifest
+     CLOSED: [2025-07-25 Fri 14:15]
+*** [4/4] Basic search
+**** DONE Show search results
+     CLOSED: [2025-07-25 Fri 23:14]
+**** DONE Select entry in search result to go to that tab
+     CLOSED: [2025-07-26 Sat 02:56]
+**** DONE Remember old search when reopening menu
+     CLOSED: [2025-07-26 Sat 03:44]
+**** DONE Sort output
+     CLOSED: [2025-07-26 Sat 06:47]
+*** TODO Show actual history data in popup menu
+*** [0/3] Internal state continued
+**** TODO Review existing state updating
 **** TODO Track tab list
      Add tabs as they're added to the window. Remove tabs that are dragged into
      their own window.
 **** TODO Track navigation history
-*** [0/3] Basic history recording (for current tab)
+*** [0/2] Basic history recording (for current tab)
 **** TODO Update history records when user follows links
      Use `onReferenceFragmentUpdated`, `onCommitted`, `onHistoryStateUpdated`
      and events to listen for user navigation.
-**** TODO Show actual history data in popup menu
 **** TODO Basic back/forward navigation handling
      Simple handling of back/forward history navigation. This does not include
      heuristics to disambiguate when the same URL appears multiple times in
@@ -92,13 +103,7 @@
      currently believed to be the current page) is the page navigated to by the
      user.
 *** [3/7] Search
-**** DONE Show search results
-     CLOSED: [2025-07-25 Fri 23:14]
-**** DONE Select entry in search result to go to that tab
-     CLOSED: [2025-07-26 Sat 02:56]
-**** DONE Remember old search when reopening menu
-     CLOSED: [2025-07-26 Sat 03:44]
-**** TODO Debounce search input
+**** TODO Debounce search input(?)
      I.e. if user types fast, interrupt and restart ongoing search.
 
      https://medium.com/@code.sachin/making-sense-of-debouncing-in-javascript-input-change-9a91d02738b6

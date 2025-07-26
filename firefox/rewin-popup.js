@@ -5,6 +5,18 @@
 const storage = await browser.storage.local.get()
 const tabs = Object.entries(storage)
   .filter(([rewinTabId]) => rewinTabId[0] === 't')
+  .sort(([rewinIdA, dataA], [rewinIdB, dataB]) => {  // sort by title
+    let [metaA, dataA2] = dataA ?? []
+    let [metaB, dataB2] = dataB ?? []
+    let [urlA, titleA] = dataA2 ?? []
+    let [urlB, titleB] = dataB2 ?? []
+    return (titleA ?? '').localeCompare((titleB ?? ''), undefined, {
+      sensitivity: 'accent',   // ignore case, but not accents
+      //sensitivity: 'base',   // ignore case and accents
+      ignorePunctuation: true, // ignore punctuation like '!', '.'
+      numeric: true,           // optional, for treating numbers as text
+    })
+  })
 
 // Save/load data from storage.local.
 function saveRec(rewinId, data) {
@@ -71,8 +83,8 @@ q.oninput = () => {
 // Go to browser tab when clicking search result.
 document.body.onclick = evt => {
   const { target } = evt
-  const [type, rewinTabId] = target.getAttribute('href').split(':')
-  if (target.tagName !== 'A' || type !== 'rewinTabId') { return }
+  const [type, rewinTabId] = (target.getAttribute('href') ?? '').split(':')
+  if (target.tagName !== 'A' && type !== 'rewinTabId') { return }
   evt.preventDefault()
   getBrowserTabId(rewinTabId).then(([tabId, windowId]) => {
     // Only unminimize (don't affect fullscreen etc).
